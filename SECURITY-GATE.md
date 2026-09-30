@@ -51,7 +51,17 @@ Cách dùng mẫu:
 
 ### Yêu cầu bảo mật và threat model (module 03)
 
-Chưa áp dụng.
+Mục này không phải một gate tự động duy nhất: nó gồm gate tổ chức (review threat model và ma trận trong pull request) và một job kiểm tra requirement bằng máy.
+
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | Threat model: OWASP Threat Dragon 2.6.2 (image `owasp/threat-dragon:v2.6.2@sha256:ec26312b472ad364d5b79283d795f946b9aff9639b798e9f76bfdd243810af17`), file `docs/threat-model/rexcorp-app.json`. Requirement: OWASP ASVS 5.0.0 trong `SECURITY-REQUIREMENTS.md`. Kiểm tra bằng máy: `scripts/verify-requirements.sh` (bash, curl, docker), workflow `.github/workflows/requirements-check.yml` |
+| Chạy ở đâu | (1) Review: mọi pull request làm đổi DFD phải cập nhật threat model, hoặc ghi lý do không cần, theo `.github/pull_request_template.md`. (2) CI: job `verify-requirements` trên mọi `pull_request` và push lên `main` |
+| Điều kiện chặn | Job `verify-requirements` fail khi có dòng `FAIL`: một requirement kiểm được hôm nay mà không đạt (REQ-04, REQ-08, phần mã nguồn của REQ-09). `GAP`, `SKIP`, `MANUAL`, `PARTIAL` không chặn nhưng phải có mã backlog. Pull request thêm đăng nhập hoặc tải file chỉ được merge khi thỏa "Điều kiện merge" trong `SECURITY-REQUIREMENTS.md` |
+| Baseline / ngoại lệ | Trạng thái hiện tại của từng requirement nằm trong `SECURITY-REQUIREMENTS.md` (cột Trạng thái) và `docs/security-backlog.md` (SEC-003 đến SEC-008). Bỏ một requirement hoặc chấp nhận một threat: viết ADR mới hoặc sửa ADR-0003 qua pull request, ghi lý do, người chịu trách nhiệm, hạn xem lại. Người xin không tự duyệt |
+| Bằng chứng | `docs/threat-model/rexcorp-app.json`, `docs/threat-model/threat-model.md`, `docs/security-traceability.md`; log job `verify-requirements` trên GitHub Actions |
+| Triage và thời hạn xử lý | Threat mới: ghi vào threat model trong cùng pull request làm đổi thiết kế. Threat High còn Open: có mã backlog và người phụ trách; không merge tính năng liên quan. Xem lại toàn bộ threat model mỗi 6 tháng hoặc khi Product đổi phạm vi |
+| Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PW.1.1 (risk modeling, trang 11), PW.1.2 (theo dõi requirement, rủi ro, quyết định thiết kế, trang 11), PO.1.2 (tài liệu hóa requirement của phần mềm, trang 5), PW.2.1 (review thiết kế, trang 12). Bản đồ pipeline NCCoE: threat modeling thuộc phase Plan. Requirement: OWASP ASVS 5.0.0 L1, trích ID dạng `v5.0.0-x.y.z` |
 
 ### SAST: phân tích tĩnh mã nguồn (module 04)
 
@@ -82,3 +92,4 @@ Chưa áp dụng.
 | Ngày | Người sửa | Thay đổi |
 |---|---|---|
 | 2026-10-05 | Kỹ sư DevOps phụ trách bảo mật | Tạo file; thêm mục "Quét secret" (Lab 02) |
+| 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Yêu cầu bảo mật và threat model" (Lab 03) |
