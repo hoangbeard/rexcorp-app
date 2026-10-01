@@ -1,0 +1,66 @@
+name: SAST
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 3 * * 1' # thứ Hai hằng tuần, 03:17 UTC: quét lại toàn bộ, kể cả khi không có thay đổi
+  workflow_dispatch:
+
+# Quyền tối thiểu: chỉ đọc mã nguồn. SARIF lưu làm artifact nên không cần security-events: write.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: SAST (Semgrep CE)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Semgrep CE 1.182.0 (engine LGPL-2.1), pin theo digest. Không có action chính thức cho CE;
+      # tài liệu của Semgrep dùng container image (xem ADR-0004).
+      SEMGREP_IMAGE: semgrep/semgrep:1.182.0@sha256:4a34048c04fef049f71665047f074cffb00cc3d89482f965a5cd151d589237af
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Chuẩn bị thư mục báo cáo (ngoài thư mục được quét)
+        run: mkdir -p "$RUNNER_TEMP/sast-out"
+
+      - name: Semgrep gate, chặn finding mức ERROR
+        # --error: có finding thì exit 1, job fail, gate chặn. --severity ERROR: chỉ ERROR được tính.
+        # --metrics off: không gửi metrics. Luật: rule của repo (MIT) và p/default (Semgrep Rules License).
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -v "$GITHUB_WORKSPACE":/src -v "$RUNNER_TEMP/sast-out":/out -w /src "$SEMGREP_IMAGE" \
+            semgrep scan \
+            --config .semgrep/rules --config p/default \
+            --metrics off --disable-version-check --no-rewrite-rule-ids \
+            --severity ERROR --error \
+            --sarif-output /out/semgrep-gate.sarif
+
+      - name: Semgrep báo cáo đầy đủ mọi mức (không chặn)
+        if: ${{ !cancelled() }} # vẫn chạy khi gate đã fail, để có bằng chứng đầy đủ
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -v "$GITHUB_WORKSPACE":/src -v "$RUNNER_TEMP/sast-out":/out -w /src "$SEMGREP_IMAGE" \
+            semgrep scan \
+            --config .semgrep/rules --config p/default \
+            --metrics off --disable-version-check --no-rewrite-rule-ids \
+            --sarif-output /out/semgrep-all.sarif
+
+      - name: Lưu báo cáo SARIF làm artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: semgrep-sarif
+          path: ${{ runner.temp }}/sast-out/*.sarif
+          if-no-files-found: error
+          retention-days: 30

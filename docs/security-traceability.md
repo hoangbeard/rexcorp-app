@@ -9,7 +9,7 @@ Cập nhật lần cuối: 2026-10-06 (Lab 03). Nguồn: [`threat-model/threat-m
 | T-01 Mạo danh tác giả ghi chú | High | Mitigate | REQ-01 | Test tích hợp (scripts/verify-requirements.sh, REQ-01) | Lab 03; 08 | Cảnh báo (GAP) hôm nay; chặn khi có đăng nhập | Open |
 | T-02 Ghi chú nội bộ đọc được không cần xác thực | High | Mitigate | REQ-01 | Test tích hợp (REQ-01) | Lab 03; 08 | Cảnh báo (GAP) hôm nay; chặn khi có đăng nhập | Open |
 | T-03 Đầu vào sai kiểu, sai định dạng, quá lớn | Medium | Mitigate | REQ-04 | Test có sẵn trong test/app.test.js; script REQ-04; SAST | Lab 03; 04 | Chặn: test và script chạy trong CI | Mitigated |
-| T-04 Ghi chú chứa HTML hoặc script được lưu và phát lại nguyên văn | Medium | Mitigate | REQ-10 | SAST: ghép dữ liệu người dùng vào HTML (Lab 04); DAST | 04; 07 | Chưa áp dụng hôm nay; chặn từ Lab 04 (SAST mức ERROR) | Open |
+| T-04 Ghi chú chứa HTML hoặc script được lưu và phát lại nguyên văn | Medium | Mitigate | REQ-10 | SAST: job `semgrep` với rule `rexcorp-express-reflected-xss` (Lab 04); DAST | 04; 07 | Chặn: job `semgrep`, mức ERROR (chưa phải required check: module 08) | Open (gate sẵn; chờ route trả HTML trên `main`) |
 | T-05 Không có nhật ký về ai ghi gì, lúc nào | Medium | Accept | không có | Không có | chưa có | Chưa áp dụng (SEC-006) | Accepted |
 | T-06 Số ghi chú không giới hạn làm đầy bộ nhớ | Medium | Mitigate | không có | Không có (L2: ASVS 2.4.1) | chưa có | Chưa áp dụng (SEC-004) | Open |
 | T-07 Siêu dữ liệu nguồn (.git, .env) lọt vào image hoặc được phục vụ | Medium | Mitigate | REQ-08 | curl và ls trong image (REQ-08); DAST | Lab 03; 06; 07 | Chặn: script chạy trong CI | Mitigated |
@@ -31,13 +31,13 @@ Cập nhật lần cuối: 2026-10-06 (Lab 03). Nguồn: [`threat-model/threat-m
 | REQ-01 | v5.0.0-8.2.1 | L1 | T-01, T-02 | Test tích hợp | Lab 03; 08 | Cảnh báo, rồi chặn | Chưa đạt (SEC-003) |
 | REQ-02 | v5.0.0-8.2.2 | L1 | T-12 | Test tích hợp hai người dùng | 08 | Chưa áp dụng, rồi chặn | Chưa áp dụng (SEC-007) |
 | REQ-03 | v5.0.0-6.3.1 | L1 | T-11 | Test tích hợp; review tài liệu 6.1.1 | 08 | Chưa áp dụng, rồi chặn | Chưa áp dụng (SEC-003) |
-| REQ-04 | v5.0.0-2.2.1 | L1 | T-03 | Test có sẵn; script; SAST | Lab 03; 04 | Chặn | Đạt |
+| REQ-04 | v5.0.0-2.2.1 | L1 | T-03 | Test có sẵn; script; SAST (job `semgrep` thấy chỗ ghép chuỗi, không biết quy tắc đúng) | Lab 03; 04 | Chặn | Đạt |
 | REQ-05 | v5.0.0-5.2.1 | L1 | T-14 | Test tích hợp | 08 | Chưa áp dụng, rồi chặn | Chưa áp dụng (SEC-007) |
 | REQ-06 | v5.0.0-5.3.2 | L1 | T-13 | Test tích hợp; SAST | 04 | Chưa áp dụng, rồi chặn | Chưa áp dụng (SEC-007) |
 | REQ-07 | v5.0.0-15.2.1 | L1 | T-10 | SCA theo bảng thời hạn | 05; 08 | Kiểm tay, rồi chặn | Chưa kiểm (SEC-008) |
 | REQ-08 | v5.0.0-13.4.1 | L1 | T-07 | curl, kiểm image; DAST | Lab 03; 06; 07 | Chặn | Đạt |
 | REQ-09 | v5.0.0-13.3.1 | L2 | T-09 | Gitleaks; kiểm tay phần quản lý secret | 02 | Chặn (phần mã nguồn); kiểm tay (phần còn lại) | Một phần |
-| REQ-10 | v5.0.0-1.2.1 | L1 | T-04 | SAST; test XSS phản xạ; DAST | 04; 07 | Chặn từ Lab 04 | Chưa áp dụng (SEC-005) |
+| REQ-10 | v5.0.0-1.2.1 | L1 | T-04 | SAST (rule `rexcorp-express-reflected-xss` bắt route `/search` ở Lab 04); DAST | 04; 07 | Chặn (job `semgrep`) | Đạt về công cụ; chờ route HTML trên `main` (SEC-005) |
 
 ## 3. Kiểm tra độ phủ của ma trận
 
@@ -46,4 +46,4 @@ Cập nhật lần cuối: 2026-10-06 (Lab 03). Nguồn: [`threat-model/threat-m
 | Threat chọn Mitigate mà không có requirement | T-06, T-15, T-16, T-17 (xem ADR-0003: requirement bị bỏ và lý do; T-17 nằm ngoài phạm vi ASVS). T-05 và T-08 là Accept, không cần requirement |
 | Requirement không có kiểm tra bằng máy | REQ-07 (chờ module 05), phần quản lý secret của REQ-09 (kiểm tay) |
 | Kiểm tra không có gate bắt buộc | Chưa có gate nào là required status check (SEC-002, module 08) |
-| Requirement kiểm được bằng tool ở module nào | 04: REQ-04, REQ-06, REQ-10 (SAST); 05: REQ-07 (SCA); 07: REQ-08 (DAST); 08: REQ-01, 02, 03, 05 (test tích hợp bắt buộc) |
+| Requirement kiểm được bằng tool ở module nào | 04: REQ-04 (một phần), REQ-06 (chưa có rule `path.join`), REQ-10 (SAST, đã chạy ở Lab 04); 05: REQ-07 (SCA); 07: REQ-08 (DAST); 08: REQ-01, 02, 03, 05 (test tích hợp bắt buộc) |

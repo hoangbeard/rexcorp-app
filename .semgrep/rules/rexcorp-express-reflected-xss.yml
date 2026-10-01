@@ -1,0 +1,34 @@
+rules:
+  - id: rexcorp-express-reflected-xss
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Dữ liệu từ request (req.query, req.params, req.body, req.headers) đi vào phản hồi HTML
+      mà không qua escapeHtml(). Kẻ tấn công có thể chèn script chạy trong trình duyệt của nạn
+      nhân (XSS phản xạ). Bọc giá trị bằng escapeHtml() (src/lib/html.js) hoặc trả JSON thay vì HTML.
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      confidence: HIGH
+      license: MIT
+    pattern-sources:
+      - pattern-either:
+          - pattern: req.query
+          - pattern: req.params
+          - pattern: req.body
+          - pattern: req.headers
+    pattern-sanitizers:
+      - pattern: escapeHtml(...)
+      # store.listProducts(...) trả dữ liệu danh mục của hệ thống (store.js), không phải chuỗi người
+      # dùng gõ vào, dù tham số lọc lấy từ request. CHỈ hàm này: không thêm các hàm khác của store
+      # (ví dụ listNotes trả ghi chú do người dùng nhập). Ca test /g và /h giữ ranh giới đó.
+      - pattern: store.listProducts(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: res.send($X)
+              - pattern: res.status(...).send($X)
+              - pattern: res.write($X)
+              - pattern: res.end($X)
+          - focus-metavariable: $X
