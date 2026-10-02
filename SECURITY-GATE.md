@@ -77,7 +77,17 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 
 ### Dependency, SCA và SBOM (module 05)
 
-Chưa áp dụng.
+#### SCA: lỗ hổng trong dependency
+
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | OSV-Scanner v2.6.0, image `ghcr.io/google/osv-scanner:v2.6.0@sha256:afd838850ac1a0fcc15ff4a041dc9ba11123c3f0d2666217a5f0fcf9222b55fa`, chạy trong workflow `dependency-scan.yml`. Bổ sung: `actions/dependency-review-action` v5.0.0 (pin SHA `a1d282b36b6f3519aa1f3fc636f609c47dddb294`) trong `dependency-review.yml`; Dependabot alerts, security updates và version updates (`.github/dependabot.yml`) |
+| Chạy ở đâu | (1) Pull request và push lên `main`: job `osv-scanner` quét `package-lock.json`. (2) Pull request: job `dependency-review` chỉ xét phần thay đổi. (3) Mỗi sáng thứ Hai: `osv-scanner` chạy theo lịch để bắt advisory mới cho dependency đã có. (4) Liên tục: Dependabot alerts trên GitHub |
+| Điều kiện chặn | Mọi lỗ hổng chưa nằm trong `osv-scanner.toml` làm job `osv-scanner` fail (exit code 1), không phân biệt mức độ. Riêng pull request: `dependency-review` fail khi thay đổi đưa vào lỗ hổng mức high trở lên hoặc giấy phép ngoài danh sách MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0 |
+| Baseline / ngoại lệ | File `osv-scanner.toml` ở gốc repo, mỗi ngoại lệ là một khối `[[IgnoredVulns]]` có `id`, `ignoreUntil` (tối đa 30 ngày) và `reason` (lý do kỹ thuật, ID trong `docs/security-backlog-dependencies.md`, người chịu trách nhiệm). Hết hạn thì gate lại báo. Người phụ trách bảo mật duyệt qua pull request; người xin không tự duyệt. Trạng thái hiện tại: không có ngoại lệ |
+| Bằng chứng | Artifact `osv-scanner-sarif` (SARIF 2.1.0) của mỗi lần chạy, giữ 30 ngày; log job. Artifact của repo public ai đăng nhập cũng tải được: báo cáo SCA không chứa secret nhưng cho biết phiên bản đang dùng |
+| Triage và thời hạn xử lý | Lỗ hổng mức Critical trong dependency production: xử lý trong 7 ngày hoặc ghi ngoại lệ có lý do; High: 14 ngày; Medium: 30 ngày; Low: vào backlog (bảng SLA duy nhất của khóa học, `docs/frameworks/remediation-sla.md`). Pull request của Dependabot được xem trong tuần. Thêm thư viện production mới: theo bảng đánh giá ở Bài 2 và ADR |
+| Căn cứ framework | NIST SSDF 1.1: PW.4.1 (lấy và duy trì thành phần bên thứ ba có bảo mật), PW.4.4 Ex. 2 (tự động phát hiện lỗ hổng đã biết trong toolchain), RV.1.1 Ex. 3 (tự động rà soát dữ liệu thành phần để tìm lỗ hổng mới), PO.4.1 và PO.4.2 (tiêu chí và quyết định tự động). OWASP ASVS 5.0 V15.1.1 và V15.2.1 (L1). OpenSSF S2C2F: SCA-1, UPD-2, UPD-3 (ánh xạ của khóa học). NCCoE: SCA System là component của phase Develop và Build |
 
 ### Container image và cấu hình (module 06)
 
@@ -102,3 +112,4 @@ Chưa áp dụng.
 | 2026-10-05 | Kỹ sư DevOps phụ trách bảo mật | Tạo file; thêm mục "Quét secret" (Lab 02) |
 | 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Yêu cầu bảo mật và threat model" (Lab 03) |
 | 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SAST" (Lab 04) |
+| 2026-10-08 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SCA" (Lab 05a) |

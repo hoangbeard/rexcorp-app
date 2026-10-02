@@ -1,0 +1,13 @@
+# Ngoại lệ của OSV-Scanner cho rexcorp-app. Hiện KHÔNG có ngoại lệ nào: đó là trạng thái mong muốn.
+#
+# Mỗi ngoại lệ phải đủ bốn thứ (xem SECURITY-GATE.md, mục "Dependency, SCA và SBOM"):
+#   id           ID của lỗ hổng (GHSA-... hoặc CVE-...); bí danh (alias) của ID đó cũng được bỏ qua
+#   ignoreUntil  ngày hết hạn, tối đa 30 ngày kể từ hôm nay; hết hạn thì gate lại báo lỗ hổng
+#   reason       lý do kỹ thuật, ID trong docs/security-backlog.md, người chịu trách nhiệm
+#   duyệt        qua pull request, người phụ trách bảo mật duyệt; người xin không tự duyệt
+#
+# Mẫu (đang để comment):
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2026-11-05
+# reason = "SEC-010: hàm bị ảnh hưởng không được gọi; bản vá cần nâng major, xếp lịch tuần sau. Chịu trách nhiệm: DevOps"

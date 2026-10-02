@@ -15,7 +15,7 @@ Cập nhật lần cuối: 2026-10-06 (Lab 03). Nguồn: [`threat-model/threat-m
 | T-07 Siêu dữ liệu nguồn (.git, .env) lọt vào image hoặc được phục vụ | Medium | Mitigate | REQ-08 | curl và ls trong image (REQ-08); DAST | Lab 03; 06; 07 | Chặn: script chạy trong CI | Mitigated |
 | T-08 Lưu lượng HTTP không mã hóa nếu triển khai ra ngoài máy dev | Medium | Accept | không có | Không có (hạ tầng triển khai) | khóa 2 | Chấp nhận có ghi lý do | Accepted |
 | T-09 Secret nằm trong mã nguồn hoặc lịch sử git | High | Mitigate | REQ-09 | Gitleaks (pre-commit, CI); push protection | 02 | Chặn (job secret-scan, chưa phải required check: SEC-002) | Mitigated |
-| T-10 Thư viện bên thứ ba có lỗ hổng hoặc mã độc đi vào image | High | Mitigate | REQ-07 | SCA theo bảng thời hạn | 05; 08 | Chưa áp dụng (SEC-008); chặn từ module 08 | Open |
+| T-10 Thư viện bên thứ ba có lỗ hổng hoặc mã độc đi vào image | High | Mitigate | REQ-07 | OSV-Scanner (`dependency-scan.yml`) + dependency review theo bảng SLA duy nhất của khóa học (`docs/frameworks/remediation-sla.md`); Lab 05a Bước 2b cho thấy lockfile và `--ignore-scripts` | 05; 08 | Chặn: job `osv-scanner` (chưa phải required check: module 08) | Mitigated (lỗ hổng đã biết); typosquat/hijack chưa có kiểm tra tự động |
 | T-11 Nhồi thông tin đăng nhập hoặc dò mật khẩu | High | Mitigate | REQ-03 | Test tích hợp giới hạn số lần thử; review tài liệu 6.1.1 | 08 | Chưa áp dụng: điều kiện merge đăng nhập (SEC-003) | Open |
 | T-12 Người dùng B truy cập file của người dùng A bằng cách đổi mã file | High | Mitigate | REQ-02 | Test tích hợp hai người dùng | 08 | Chưa áp dụng: điều kiện merge tải file (SEC-007) | Open |
 | T-13 Tên file do người dùng gửi dẫn tới ghi ra ngoài thư mục lưu trữ | High | Mitigate | REQ-06 | Test tích hợp tên file xấu; SAST | 04 | Chưa áp dụng: điều kiện merge tải file (SEC-007) | Open |
@@ -34,7 +34,7 @@ Cập nhật lần cuối: 2026-10-06 (Lab 03). Nguồn: [`threat-model/threat-m
 | REQ-04 | v5.0.0-2.2.1 | L1 | T-03 | Test có sẵn; script; SAST (job `semgrep` thấy chỗ ghép chuỗi, không biết quy tắc đúng) | Lab 03; 04 | Chặn | Đạt |
 | REQ-05 | v5.0.0-5.2.1 | L1 | T-14 | Test tích hợp | 08 | Chưa áp dụng, rồi chặn | Chưa áp dụng (SEC-007) |
 | REQ-06 | v5.0.0-5.3.2 | L1 | T-13 | Test tích hợp; SAST | 04 | Chưa áp dụng, rồi chặn | Chưa áp dụng (SEC-007) |
-| REQ-07 | v5.0.0-15.2.1 | L1 | T-10 | SCA theo bảng thời hạn | 05; 08 | Kiểm tay, rồi chặn | Chưa kiểm (SEC-008) |
+| REQ-07 | v5.0.0-15.2.1 | L1 | T-10 | OSV-Scanner + dependency review; thời hạn theo bảng SLA duy nhất | 05; 08 | Chặn (job `osv-scanner`) | Đạt (gate lockfile; `osv-scanner.toml` không có ngoại lệ) |
 | REQ-08 | v5.0.0-13.4.1 | L1 | T-07 | curl, kiểm image; DAST | Lab 03; 06; 07 | Chặn | Đạt |
 | REQ-09 | v5.0.0-13.3.1 | L2 | T-09 | Gitleaks; kiểm tay phần quản lý secret | 02 | Chặn (phần mã nguồn); kiểm tay (phần còn lại) | Một phần |
 | REQ-10 | v5.0.0-1.2.1 | L1 | T-04 | SAST (rule `rexcorp-express-reflected-xss` bắt route `/search` ở Lab 04); DAST | 04; 07 | Chặn (job `semgrep`) | Đạt về công cụ; chờ route HTML trên `main` (SEC-005) |
@@ -44,6 +44,6 @@ Cập nhật lần cuối: 2026-10-06 (Lab 03). Nguồn: [`threat-model/threat-m
 | Câu hỏi | Kết quả |
 |---|---|
 | Threat chọn Mitigate mà không có requirement | T-06, T-15, T-16, T-17 (xem ADR-0003: requirement bị bỏ và lý do; T-17 nằm ngoài phạm vi ASVS). T-05 và T-08 là Accept, không cần requirement |
-| Requirement không có kiểm tra bằng máy | REQ-07 (chờ module 05), phần quản lý secret của REQ-09 (kiểm tay) |
+| Requirement không có kiểm tra bằng máy | phần quản lý secret của REQ-09 (kiểm tay); REQ-07 có gate từ Lab 05a nhưng `verify-requirements.sh` vẫn in MANUAL (gate nằm ở workflow `dependency-scan.yml`) |
 | Kiểm tra không có gate bắt buộc | Chưa có gate nào là required status check (SEC-002, module 08) |
-| Requirement kiểm được bằng tool ở module nào | 04: REQ-04 (một phần), REQ-06 (chưa có rule `path.join`), REQ-10 (SAST, đã chạy ở Lab 04); 05: REQ-07 (SCA); 07: REQ-08 (DAST); 08: REQ-01, 02, 03, 05 (test tích hợp bắt buộc) |
+| Requirement kiểm được bằng tool ở module nào | 04: REQ-04 (một phần), REQ-06 (chưa có rule `path.join`), REQ-10 (SAST, đã chạy ở Lab 04); 05: REQ-07 (SCA, đã chạy ở Lab 05a); 07: REQ-08 (DAST); 08: REQ-01, 02, 03, 05 (test tích hợp bắt buộc) |
