@@ -89,6 +89,18 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 | Triage và thời hạn xử lý | Lỗ hổng mức Critical trong dependency production: xử lý trong 7 ngày hoặc ghi ngoại lệ có lý do; High: 14 ngày; Medium: 30 ngày; Low: vào backlog (bảng SLA duy nhất của khóa học, `docs/frameworks/remediation-sla.md`). Pull request của Dependabot được xem trong tuần. Thêm thư viện production mới: theo bảng đánh giá ở Bài 2 và ADR |
 | Căn cứ framework | NIST SSDF 1.1: PW.4.1 (lấy và duy trì thành phần bên thứ ba có bảo mật), PW.4.4 Ex. 2 (tự động phát hiện lỗ hổng đã biết trong toolchain), RV.1.1 Ex. 3 (tự động rà soát dữ liệu thành phần để tìm lỗ hổng mới), PO.4.1 và PO.4.2 (tiêu chí và quyết định tự động). OWASP ASVS 5.0 V15.1.1 và V15.2.1 (L1). OpenSSF S2C2F: SCA-1, UPD-2, UPD-3 (ánh xạ của khóa học). NCCoE: SCA System là component của phase Develop và Build |
 
+#### SBOM
+
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | Syft v1.55.0, image `anchore/syft:v1.55.0@sha256:4cc92b64ca74ffca4c94d4c8fcc01f217731375300be14d0b6eeb2e82eaa110a`, workflow `sbom.yml`. Định dạng: CycloneDX 1.7 (JSON) và SPDX 2.3 (JSON). Công cụ đối chiếu: Trivy v0.76.1 (không chạy trong CI) |
+| Chạy ở đâu | Mỗi lần merge vào `main` và mỗi pull request. SBOM sản phẩm gồm package npm production; không gồm `devDependencies`, không gồm action trong workflow |
+| Điều kiện chặn | Job `sbom` fail khi: (1) `scripts/scvs-l1-check.sh` báo FAIL cho một trong SCVS 2.1, 2.3, 2.7, 2.9, 2.12, 2.14, hoặc (2) OSV-Scanner tìm thấy lỗ hổng chưa có trong `osv-scanner.toml` khi quét chính file SBOM (SCVS 2.8) |
+| Lưu và giao | Artifact `sbom-rexcorp-app` giữ 90 ngày; SBOM đính kèm bản phát hành. Nội dung giao khách theo `docs/sbom/README.md`: phạm vi, ngày tạo |
+| Mức SCVS đạt | L1 cho family V2 (SBOM): đạt 2.1, 2.3, 2.7, 2.9, 2.12, 2.14 và 2.8 theo cách kiểm ở trên. Chưa đạt: 2.2 (tạo tự động và tái lập được: mới có "tự động"), 2.4 và 2.5 (ký), 2.18 (hash). Các family V1, V3 đến V6 của SCVS chưa được đánh giá |
+| Triage và thời hạn xử lý | SBOM sai hoặc thiếu so với lockfile (2.9 fail): sửa trong 3 ngày làm việc. Khách hàng báo thiếu trường: ghi vào backlog, trả lời trong 5 ngày làm việc |
+| Căn cứ framework | NIST SSDF 1.1: PS.3.2 (thu thập, bảo vệ, duy trì và chia sẻ dữ liệu provenance của từng thành phần, ví dụ SBOM; Ex. 1 dùng định dạng chuẩn, Ex. 4 cập nhật mỗi khi thành phần đổi), PW.4.1 Ex. 3 (lấy provenance của thành phần và phân tích rủi ro), RV.1.1 Ex. 3. OWASP SCVS V2 L1. NCCoE: "Provenance Generation and Verification Tool (e.g., SBOM)" ở phase Build, Test, Release |
+
 ### Container image và cấu hình (module 06)
 
 Chưa áp dụng.
@@ -113,3 +125,4 @@ Chưa áp dụng.
 | 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Yêu cầu bảo mật và threat model" (Lab 03) |
 | 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SAST" (Lab 04) |
 | 2026-10-08 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SCA" (Lab 05a) |
+| 2026-10-08 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SBOM" (Lab 05b) |
