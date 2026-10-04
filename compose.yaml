@@ -9,5 +9,8 @@ services:
     ports:
       - "127.0.0.1:${REXCORP_PORT:-3000}:3000"
     read_only: true
+    # Bỏ mọi Linux capability: app chỉ nghe cổng 3000 bằng user thường nên không cần capability nào (Lab 06).
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true

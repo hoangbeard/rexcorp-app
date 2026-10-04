@@ -1,0 +1,13 @@
+# Ngoại lệ của gate quét image và cấu hình (Trivy). Đọc bằng cờ --ignorefile (tính năng .trivyignore.yaml còn EXPERIMENTAL).
+# Mỗi mục bắt buộc có: id, statement (lý do + người chịu trách nhiệm + điều kiện gỡ) và expired_at (không vượt trần của hạng: docs/frameworks/remediation-sla.md, mục 4).
+# Trivy KHÔNG bắt buộc expired_at: thiếu trường này thì ngoại lệ có hiệu lực mãi mãi, nên review pull request phải kiểm tra.
+# Quy định: SECURITY-GATE.md, mục "Container image và cấu hình". Người duyệt: người phụ trách bảo mật.
+#
+# Hiện không có ngoại lệ nào: sau ADR-0006 (chuyển sang distroless) image không còn finding HIGH/CRITICAL đã có bản vá.
+# Mẫu một mục:
+#
+#   vulnerabilities:
+#     - id: CVE-AAAA-NNNN
+#       statement: "Lý do. Chủ sở hữu: tên. Gỡ khi: base image có bản vá."
+#       expired_at: 2026-11-24
+vulnerabilities: []
