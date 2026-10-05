@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: RexCorp Catalogue API
+  version: 0.1.0
+  description: >
+    Mô tả các route của rexcorp-app để ZAP biết phải gọi những URL nào.
+    Spider của ZAP chỉ đi theo liên kết trong HTML; API JSON không có liên kết nên spider không thấy route.
+servers:
+  - url: http://app:3000
+paths:
+  /healthz:
+    get:
+      summary: Kiểm tra sống
+      responses:
+        '200': { description: ok }
+  /api/products:
+    get:
+      summary: Danh sách sản phẩm
+      parameters:
+        - { name: category, in: query, required: false, schema: { type: string, enum: [hardware, service] } }
+      responses:
+        '200': { description: ok }
+        '400': { description: category không hợp lệ }
+  /api/products/{id}:
+    get:
+      summary: Một sản phẩm
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, example: rx-100 } }
+      responses:
+        '200': { description: ok }
+        '404': { description: không có sản phẩm }
+  /api/products/{id}/notes:
+    get:
+      summary: Ghi chú của một sản phẩm
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, example: rx-100 } }
+      responses:
+        '200': { description: ok }
+        '404': { description: không có sản phẩm }

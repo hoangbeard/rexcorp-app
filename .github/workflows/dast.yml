@@ -1,0 +1,47 @@
+name: DAST
+
+# Quét động rexcorp-app bằng ZAP. Ứng dụng chạy NGAY TRONG job, trong một mạng Docker riêng (không cổng nào publish ra runner),
+# nên mục tiêu duy nhất của ZAP là chính ứng dụng của repo này. Không quét host nào khác (xem SECURITY-GATE.md, mục DAST).
+on:
+  pull_request:
+  # Nếu bật merge queue và đặt job này làm required check, thêm `merge_group:` ở đây: thiếu nó check không chạy khi pull request
+  # vào hàng đợi và merge kẹt (bài 1 module 07, mục 7). Lab chưa bật merge queue nên chưa thêm.
+  push:
+    branches: [main]
+  schedule:
+    # Thứ Hai hằng tuần, 02:17 UTC: ZAP và rule của nó đổi dù code không đổi.
+    - cron: '17 2 * * 1'
+  workflow_dispatch:
+
+# Quyền tối thiểu: chỉ đọc mã nguồn. Không dùng zaproxy/action-baseline nên không cần `issues: write` (xem ADR-0007).
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zap:
+    name: DAST (ZAP baseline và API scan)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Quét ZAP (gate)
+        # Exit code 1 khi có rule FAIL trong .zap/rules.tsv -> job fail -> gate chặn.
+        # WARN chỉ in ra, không chặn. Cùng script với máy bạn: scripts/dast-scan.sh.
+        run: scripts/dast-scan.sh
+
+      - name: Lưu báo cáo ZAP làm artifact
+        if: ${{ !cancelled() }} # vẫn lưu khi gate đỏ, để làm bằng chứng
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zap-report
+          path: zap-out/
+          if-no-files-found: error
+          retention-days: 30
