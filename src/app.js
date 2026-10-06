@@ -1,4 +1,5 @@
 import express from 'express';
+import { securityHeaders } from './security-headers.js';
 import { createStore } from './store.js';
 import { registerSearchRoutes } from './search.js';
 import { summarizeByCategory } from './summary.js';
@@ -29,6 +30,7 @@ export function createApp({ store = createStore() } = {}) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use(securityHeaders);
   app.use(express.json({ limit: '10kb' }));
 
   app.get('/healthz', (req, res) => {
