@@ -24,3 +24,4 @@ Sổ ghi mọi quyết định chấp nhận rủi ro có thời hạn của rep
 
 | ID | Control | Finding | Bậc | Lý do và biện pháp tạm thời | Người xin | Người duyệt | Ngày duyệt | Hết hạn | Nơi cấu hình | Trạng thái |
 |---|---|---|---|---|---|---|---|---|---|---|
+| EXC-0004 | DAST | Rule ZAP 10038 (CSP chưa đặt) cho kịp release 1.4 | P3 | Release thứ Sáu, CSP cần thiết kế lại, sẽ làm sau release | Trần Thu Hà | Trần Thu Hà | 2026-10-07 | 2027-10-07 | `.zap/rules.tsv` | Đang hiệu lực |
