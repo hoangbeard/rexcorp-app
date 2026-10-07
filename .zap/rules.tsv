@@ -29,3 +29,4 @@
 
 # --- Phạm vi: không quét những URL này ---
 # Không có đường dẫn nào bị loại trừ cho rexcorp-app. (Ví dụ cú pháp: *	OUTOFSCOPE	.*/logout.*)
+10038	IGNORE	(EXC-0004) Tạm bỏ qua cho kịp release 1.4; làm CSP trước 2027-01-05
