@@ -1,6 +1,7 @@
 import express from 'express';
 import { securityHeaders } from './security-headers.js';
 import { createStore } from './store.js';
+import { registerSearchRoutes } from './search.js';
 
 const CATEGORIES = new Set(['hardware', 'service']);
 const AUTHOR_PATTERN = /^[a-z0-9._-]{1,40}$/;
@@ -72,6 +73,8 @@ export function createApp({ store = createStore() } = {}) {
     });
     res.status(201).json(note);
   });
+
+  registerSearchRoutes(app, store);
 
   // Route không tồn tại.
   app.use((req, res) => {
