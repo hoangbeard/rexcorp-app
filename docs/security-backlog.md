@@ -4,4 +4,5 @@ Danh sách việc bảo mật đã biết nhưng chưa xử lý xong. Mỗi mụ
 
 | ID | Mô tả | Mức độ | Người phụ trách | Hạn | Trạng thái |
 |---|---|---|---|---|---|
-| SEC-001 | Commit "Thêm cấu hình dịch vụ thông báo" ghi thẳng API key của dịch vụ thông báo vào `src/config.js`. Commit sau đã đổi sang biến môi trường `NOTIFY_API_KEY`, nhưng key vẫn nằm trong lịch sử git. CI vẫn xanh: pipeline chưa có control nào phát hiện secret | Cao | Kỹ sư DevOps phụ trách bảo mật | Module 02 | Mở |
+| SEC-001 | Commit "Thêm cấu hình dịch vụ thông báo" ghi thẳng API key của dịch vụ thông báo vào `src/config.js`. Commit sau đã đổi sang biến môi trường `NOTIFY_API_KEY`, nhưng key vẫn nằm trong lịch sử git. CI vẫn xanh: pipeline chưa có control nào phát hiện secret | Cao | Kỹ sư DevOps phụ trách bảo mật | Module 02 | Đóng 2026-10-22: thu hồi (mô phỏng), ngoại lệ có hạn trong `.gitleaksignore`, gate `secret-scan` xanh (run 39794884665) |
+| SEC-002 | Đặt job `secret-scan` làm required status check của nhánh `main` (hiện job đỏ chưa chặn được merge) | Cao | Kỹ sư DevOps phụ trách bảo mật | Module 08 | Mở |
