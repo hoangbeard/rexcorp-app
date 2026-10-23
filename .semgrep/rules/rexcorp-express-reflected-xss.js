@@ -5,6 +5,7 @@ import express from 'express';
 import { escapeHtml } from '../../src/lib/html.js';
 
 const app = express();
+const store = { listProducts: () => [], listNotes: () => [] };   // đặt sau dòng `const app = express();`
 
 app.get('/a', (req, res) => {
   // ruleid: rexcorp-express-reflected-xss
@@ -40,6 +41,20 @@ app.get('/f', (req, res) => {
   res.json({ q });
 });
 
+app.get('/g', (req, res) => {
+  const items = store.listProducts({ category: req.query.category });
+  // ok: rexcorp-express-reflected-xss
+  res.end(`<ul>${items.map((p) => `<li>${p.name}</li>`).join('')}</ul>`);
+});
+
+app.get('/h', (req, res) => {
+  // Ranh giới của sanitizer: chỉ listProducts được tin. listNotes (ghi chú do người dùng nhập)
+  // không được thêm vào rule, nên dữ liệu đi qua nó vẫn bị báo.
+  const notes = store.listNotes(req.params.id);
+  // ruleid: rexcorp-express-reflected-xss
+  res.end(`<ul>${notes.map((n) => `<li>${n.text}</li>`).join('')}</ul>`);
+});
+
 // Giới hạn đã biết: taint của Semgrep CE chỉ theo dõi trong MỘT hàm. Ở đây q là tham số của
 // sendPage(), không có nguồn req.* nào nhìn thấy được bên trong hàm này.
 function sendPage(res, q) {
@@ -47,4 +62,4 @@ function sendPage(res, q) {
   res.send(`<h1>${q}</h1>`);
 }
 
-app.get('/g', (req, res) => sendPage(res, req.query.q));
+app.get('/i', (req, res) => sendPage(res, req.query.q));

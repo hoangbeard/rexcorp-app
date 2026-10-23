@@ -20,6 +20,10 @@ rules:
           - pattern: req.headers
     pattern-sanitizers:
       - pattern: escapeHtml(...)
+      # store.listProducts(...) trả dữ liệu danh mục của hệ thống (store.js), không phải chuỗi người
+      # dùng gõ vào, dù tham số lọc lấy từ request. CHỈ hàm này: không thêm các hàm khác của store
+      # (ví dụ listNotes trả ghi chú do người dùng nhập). Ca test /g và /h giữ ranh giới đó.
+      - pattern: store.listProducts(...)
     pattern-sinks:
       - patterns:
           - pattern-either:
