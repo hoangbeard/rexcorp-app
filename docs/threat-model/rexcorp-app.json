@@ -1,0 +1,1610 @@
+{
+  "version": "2.0",
+  "summary": {
+    "title": "rexcorp-app",
+    "owner": "Kỹ sư DevOps phụ trách bảo mật, RexCorp",
+    "description": "Threat model của rexcorp-app v0.1.0 (DFD-1) và của thiết kế đề xuất thêm đăng nhập và tải file (DFD-2). Lab 03, khóa DevSecOps Nền tảng.",
+    "id": 0
+  },
+  "detail": {
+    "contributors": [
+      {
+        "name": "Đội rexcorp-app"
+      },
+      {
+        "name": "Kỹ sư DevOps phụ trách bảo mật"
+      }
+    ],
+    "diagrams": [
+      {
+        "id": 0,
+        "title": "DFD-1: rexcorp-app hiện tại (v0.1.0)",
+        "diagramType": "STRIDE",
+        "version": "2.0",
+        "thumbnail": "./public/content/images/thumbnail.stride.jpg",
+        "cells": [
+          {
+            "shape": "actor",
+            "id": "3ad7d03e-7d5e-5ccd-a261-41bd289481a8",
+            "position": {
+              "x": 30,
+              "y": 150
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "A1 Người dùng nội bộ\n(trình duyệt, curl)"
+              },
+              "body": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "A1 Người dùng nội bộ\n(trình duyệt, curl)",
+              "description": "",
+              "type": "tm.Actor",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "e38ec566-0a2b-52a0-9f3c-31a5d93a34e6",
+                  "number": 1,
+                  "title": "T-01: Mạo danh tác giả ghi chú",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Spoofing",
+                  "modelType": "STRIDE",
+                  "description": "Bất kỳ ai gọi được API (không cần tài khoản) gửi POST /api/products/:id/notes với author tùy ý, ví dụ an.nguyen, và ghi chú hiện ra như do người đó viết.",
+                  "mitigation": "[Mitigate] Thêm đăng nhập; lấy author từ danh tính đã xác thực, không nhận từ body (REQ-01). Requirement: REQ-01.",
+                  "score": "6"
+                }
+              ],
+              "hasOpenThreats": true,
+              "providesAuthentication": false
+            }
+          },
+          {
+            "shape": "actor",
+            "id": "542f62f4-c2fd-5bd5-b0da-01b18063db83",
+            "position": {
+              "x": 30,
+              "y": 430
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "A2 Nhà phát triển\n(git push)"
+              },
+              "body": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "A2 Nhà phát triển\n(git push)",
+              "description": "",
+              "type": "tm.Actor",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "74953b24-f839-5587-b3c8-7b107bde49f3",
+                  "number": 17,
+                  "title": "T-17: Dùng thông tin đăng nhập GitHub bị lộ của nhà phát triển để đẩy mã độc",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Spoofing",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công có token hoặc mật khẩu GitHub của một nhà phát triển, push mã độc lên nhánh chính; CI build và triển khai nó.",
+                  "mitigation": "[Mitigate] Bảo vệ nhánh main, yêu cầu review, xác thực mạnh cho tài khoản nhà phát triển. Thuộc bảo vệ pipeline (module 09), không thuộc phạm vi ASVS.",
+                  "score": "6"
+                }
+              ],
+              "hasOpenThreats": true,
+              "providesAuthentication": false
+            }
+          },
+          {
+            "shape": "process",
+            "id": "cebad31a-f697-5b05-8f6b-a7dba80f5acf",
+            "position": {
+              "x": 380,
+              "y": 130
+            },
+            "size": {
+              "width": 120,
+              "height": 120
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "P1 rexcorp-app\n(Express API)"
+              },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "P1 rexcorp-app\n(Express API)",
+              "description": "",
+              "type": "tm.Process",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "e95767ca-efdc-5ae0-816f-4f9d3d49b6b1",
+                  "number": 5,
+                  "title": "T-05: Không có nhật ký về ai ghi gì, lúc nào",
+                  "status": "Accepted",
+                  "severity": "Medium",
+                  "type": "Repudiation",
+                  "modelType": "STRIDE",
+                  "description": "Người ghi một ghi chú sai chối việc đó; ứng dụng chỉ in một dòng 'listening' khi khởi động nên không có bằng chứng.",
+                  "mitigation": "[Accept] Chấp nhận tạm thời: chưa có đăng nhập thì nhật ký cũng không gắn được danh tính. Làm cùng REQ-01; ASVS 16.3.1 là L2 nên chưa chọn (SEC-006).",
+                  "score": "4"
+                },
+                {
+                  "id": "920a1254-483a-5f0c-83c2-0dd49f5cba56",
+                  "number": 7,
+                  "title": "T-07: Siêu dữ liệu nguồn (.git, .env) lọt vào image hoặc được phục vụ",
+                  "status": "Mitigated",
+                  "severity": "Medium",
+                  "type": "Information disclosure",
+                  "modelType": "STRIDE",
+                  "description": "Nếu image chứa thư mục .git hoặc file .env và ứng dụng phục vụ chúng, kẻ tấn công tải mã nguồn, lịch sử và secret.",
+                  "mitigation": "[Mitigate] Đã làm: .dockerignore loại .git, .env, test, docs; Express không phục vụ file tĩnh (REQ-08). Requirement: REQ-08.",
+                  "score": "3"
+                }
+              ],
+              "hasOpenThreats": false
+            }
+          },
+          {
+            "shape": "store",
+            "id": "aaea0dfd-56e2-527e-bdb2-471aff43bd48",
+            "position": {
+              "x": 660,
+              "y": 150
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "D1 Dữ liệu trong bộ nhớ\n(products, notes)"
+              },
+              "topLine": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "D1 Dữ liệu trong bộ nhớ\n(products, notes)",
+              "description": "",
+              "type": "tm.Store",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "c94b1c5f-28bf-5991-b119-9af8cf8ded7f",
+                  "number": 4,
+                  "title": "T-04: Ghi chú chứa HTML hoặc script được lưu và phát lại nguyên văn",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Tampering",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công lưu ghi chú <img src=x onerror=...>. API trả đúng chuỗi đó; nếu một giao diện sau này chèn vào trang mà không mã hóa đầu ra thì thành stored XSS.",
+                  "mitigation": "[Mitigate] Mã hóa đầu ra ở nơi hiển thị (ASVS 1.2.1, chưa chọn vì chưa có giao diện). Ghi backlog SEC-005; xem lại khi có frontend.",
+                  "score": "4"
+                },
+                {
+                  "id": "685f8e7b-ca66-5989-b904-9637cfb8dc93",
+                  "number": 6,
+                  "title": "T-06: Số ghi chú không giới hạn làm đầy bộ nhớ",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Denial of service",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công gửi liên tục POST hợp lệ; mỗi ghi chú tới 500 ký tự, nhưng số lượng và tốc độ không bị giới hạn, compose.yaml không đặt giới hạn bộ nhớ, dữ liệu nằm trong RAM.",
+                  "mitigation": "[Mitigate] Giới hạn tốc độ ở cổng vào và giới hạn bộ nhớ container. ASVS 2.4.1 là L2 nên chưa chọn ở L1 (SEC-004).",
+                  "score": "4"
+                }
+              ],
+              "hasOpenThreats": true,
+              "isALog": false,
+              "storesCredentials": false,
+              "isEncrypted": false,
+              "isSigned": false
+            }
+          },
+          {
+            "shape": "process",
+            "id": "3c9ca5b1-ed3a-5cb9-8931-62c714913d9b",
+            "position": {
+              "x": 520,
+              "y": 410
+            },
+            "size": {
+              "width": 120,
+              "height": 120
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "P2 GitHub repo + CI"
+              },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "strokeDasharray": "5 5"
+              }
+            },
+            "data": {
+              "name": "P2 GitHub repo + CI",
+              "description": "",
+              "type": "tm.Process",
+              "isTrustBoundary": false,
+              "outOfScope": true,
+              "reasonOutOfScope": "CI và chuỗi cung ứng học ở module 09 và 10",
+              "threats": [],
+              "hasOpenThreats": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "2221af16-0c0e-5058-87a8-a511d89fd736",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F1 HTTP request (JSON)"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "3ad7d03e-7d5e-5ccd-a261-41bd289481a8"
+            },
+            "target": {
+              "cell": "cebad31a-f697-5b05-8f6b-a7dba80f5acf"
+            },
+            "vertices": [
+              {
+                "x": 290,
+                "y": 170
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F1 HTTP request (JSON)",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTP",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [
+                {
+                  "id": "8f996a39-1693-5fb4-899c-785e82d797eb",
+                  "number": 3,
+                  "title": "T-03: Đầu vào sai kiểu, sai định dạng, quá lớn",
+                  "status": "Mitigated",
+                  "severity": "Medium",
+                  "type": "Tampering",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công gửi category lạ hoặc mảng, author chứa ký tự đặc biệt, body JSON hỏng hoặc quá 10 KB để làm sai lệch dữ liệu hoặc làm ứng dụng lỗi.",
+                  "mitigation": "[Mitigate] Đã làm: kiểm tra theo allowlist trong validateNote và CATEGORIES; giới hạn body 10 KB (REQ-04). Requirement: REQ-04.",
+                  "score": "4"
+                },
+                {
+                  "id": "c68df26a-00d1-5582-8047-54f64a9205e6",
+                  "number": 8,
+                  "title": "T-08: Lưu lượng HTTP không mã hóa nếu triển khai ra ngoài máy dev",
+                  "status": "Accepted",
+                  "severity": "Medium",
+                  "type": "Information disclosure",
+                  "modelType": "STRIDE",
+                  "description": "Ứng dụng chỉ nói HTTP. Nếu ai đó đưa ra mạng chung mà không đặt lớp TLS phía trước, kẻ nghe lén thấy toàn bộ dữ liệu.",
+                  "mitigation": "[Accept] Chấp nhận trong phạm vi khóa 1: compose chỉ publish 127.0.0.1 và SECURITY.md cấm deploy ra Internet. TLS thuộc hạ tầng (khóa 2). ASVS 12.2.1 ghi trong ADR là chưa chọn.",
+                  "score": "3"
+                }
+              ],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "0600e1b0-aa23-5544-bb40-d6f7932f20df",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "red",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F2 HTTP response (JSON)"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "cebad31a-f697-5b05-8f6b-a7dba80f5acf"
+            },
+            "target": {
+              "cell": "3ad7d03e-7d5e-5ccd-a261-41bd289481a8"
+            },
+            "vertices": [
+              {
+                "x": 290,
+                "y": 240
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F2 HTTP response (JSON)",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTP",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "2626b1cb-020d-5e55-b22f-9a8aa4f9011b",
+                  "number": 2,
+                  "title": "T-02: Ghi chú nội bộ đọc được không cần xác thực",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Information disclosure",
+                  "modelType": "STRIDE",
+                  "description": "Ai tới được cổng của ứng dụng cũng đọc được ghi chú nội bộ của mọi sản phẩm qua GET /api/products/:id/notes.",
+                  "mitigation": "[Mitigate] Yêu cầu quyền truy cập theo chức năng cho mọi route trừ /healthz (REQ-01). Requirement: REQ-01.",
+                  "score": "6"
+                }
+              ],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "2d3ffc1a-f4d8-5d51-9f3c-6e0b81cfac3c",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F3 ghi ghi chú"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "cebad31a-f697-5b05-8f6b-a7dba80f5acf"
+            },
+            "target": {
+              "cell": "aaea0dfd-56e2-527e-bdb2-471aff43bd48"
+            },
+            "vertices": [
+              {
+                "x": 580,
+                "y": 170
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F3 ghi ghi chú",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "gọi hàm trong tiến trình",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "a07ba393-0645-5419-b195-2243b1dfa647",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F4 đọc sản phẩm, ghi chú"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "aaea0dfd-56e2-527e-bdb2-471aff43bd48"
+            },
+            "target": {
+              "cell": "cebad31a-f697-5b05-8f6b-a7dba80f5acf"
+            },
+            "vertices": [
+              {
+                "x": 580,
+                "y": 230
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F4 đọc sản phẩm, ghi chú",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "gọi hàm trong tiến trình",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "78c5080b-2e92-5a45-a02d-d3bb83e25fe4",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F5 git push (mã nguồn, cấu hình)"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "542f62f4-c2fd-5bd5-b0da-01b18063db83"
+            },
+            "target": {
+              "cell": "3c9ca5b1-ed3a-5cb9-8931-62c714913d9b"
+            },
+            "vertices": [
+              {
+                "x": 330,
+                "y": 480
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F5 git push (mã nguồn, cấu hình)",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTPS/SSH",
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [
+                {
+                  "id": "d5a2f538-9011-598b-a820-93e8d20906f6",
+                  "number": 9,
+                  "title": "T-09: Secret nằm trong mã nguồn hoặc lịch sử git",
+                  "status": "Mitigated",
+                  "severity": "High",
+                  "type": "Information disclosure",
+                  "modelType": "STRIDE",
+                  "description": "Nhà phát triển commit một khóa API vào repo; ai đọc được repo (kể cả repo public) có quyền mà khóa đó mở ra. Đây là SEC-001 của module 02.",
+                  "mitigation": "[Mitigate] Đã làm ở module 02: pre-commit hook, job secret-scan, push protection, runbook. Chỉ phủ phần 'không có secret trong mã nguồn' của REQ-09 (REQ-09). Requirement: REQ-09.",
+                  "score": "6"
+                }
+              ],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "2cd76314-54a5-5672-b354-5e3195beb670",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "red",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F6 build + deploy (npm ci)"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "3c9ca5b1-ed3a-5cb9-8931-62c714913d9b"
+            },
+            "target": {
+              "cell": "cebad31a-f697-5b05-8f6b-a7dba80f5acf"
+            },
+            "vertices": [
+              {
+                "x": 480,
+                "y": 330
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F6 build + deploy (npm ci)",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTPS",
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "isBidirectional": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "c99e849b-918d-505a-9263-a09df54e2775",
+                  "number": 10,
+                  "title": "T-10: Thư viện bên thứ ba có lỗ hổng hoặc mã độc đi vào image",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Tampering",
+                  "modelType": "STRIDE",
+                  "description": "npm ci kéo express và các phụ thuộc gián tiếp vào image. Nếu một phiên bản có lỗ hổng đã biết hoặc bị cài mã độc, mã đó chạy với quyền của ứng dụng.",
+                  "mitigation": "[Mitigate] Quét dependency và đặt thời hạn xử lý theo mức độ; ghi trong tài liệu (REQ-07). Triển khai ở module 05. Requirement: REQ-07.",
+                  "score": "6"
+                }
+              ],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "trust-boundary-curve",
+            "id": "e246e1e0-40e7-596d-8120-f9cecb934e13",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "targetMarker": "",
+                "sourceMarker": ""
+              }
+            },
+            "labels": [
+              {
+                "attrs": {
+                  "text": {
+                    "text": "Ranh giới 1: người dùng | ứng dụng"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "x": 270,
+              "y": 60
+            },
+            "target": {
+              "x": 270,
+              "y": 330
+            },
+            "vertices": [
+              {
+                "x": 270,
+                "y": 200
+              }
+            ],
+            "data": {
+              "type": "tm.Boundary",
+              "name": "Ranh giới 1: người dùng | ứng dụng",
+              "description": "",
+              "isTrustBoundary": true,
+              "hasOpenThreats": false
+            }
+          },
+          {
+            "shape": "trust-boundary-curve",
+            "id": "1cfc72e1-3bf8-58a5-885f-1f26ed394c54",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "targetMarker": "",
+                "sourceMarker": ""
+              }
+            },
+            "labels": [
+              {
+                "attrs": {
+                  "text": {
+                    "text": "Ranh giới 2: máy dev, repo | runtime"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "x": 30,
+              "y": 370
+            },
+            "target": {
+              "x": 760,
+              "y": 370
+            },
+            "vertices": [
+              {
+                "x": 400,
+                "y": 370
+              }
+            ],
+            "data": {
+              "type": "tm.Boundary",
+              "name": "Ranh giới 2: máy dev, repo | runtime",
+              "description": "",
+              "isTrustBoundary": true,
+              "hasOpenThreats": false
+            }
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "title": "DFD-2: thiết kế đề xuất, thêm đăng nhập và tải file",
+        "diagramType": "STRIDE",
+        "version": "2.0",
+        "thumbnail": "./public/content/images/thumbnail.stride.jpg",
+        "cells": [
+          {
+            "shape": "actor",
+            "id": "7f08241d-0593-50c7-becc-e23e25123c26",
+            "position": {
+              "x": 30,
+              "y": 190
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "A1 Người dùng\nđã đăng nhập"
+              },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "A1 Người dùng\nđã đăng nhập",
+              "description": "",
+              "type": "tm.Actor",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [],
+              "hasOpenThreats": false,
+              "providesAuthentication": true
+            }
+          },
+          {
+            "shape": "process",
+            "id": "8799ea25-0792-5bba-af90-9d7fb3a24b98",
+            "position": {
+              "x": 470,
+              "y": 10
+            },
+            "size": {
+              "width": 120,
+              "height": 120
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "P1 API\n(Express)"
+              },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "P1 API\n(Express)",
+              "description": "",
+              "type": "tm.Process",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [],
+              "hasOpenThreats": false
+            }
+          },
+          {
+            "shape": "process",
+            "id": "e8ec862c-c897-5504-9dec-42ebf07ae80e",
+            "position": {
+              "x": 470,
+              "y": 190
+            },
+            "size": {
+              "width": 120,
+              "height": 120
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "P2 Đăng nhập,\nphiên (mới)"
+              },
+              "body": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "P2 Đăng nhập,\nphiên (mới)",
+              "description": "",
+              "type": "tm.Process",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "1689b0de-c23e-5787-9ce7-a4ce3f2836ad",
+                  "number": 11,
+                  "title": "T-11: Nhồi thông tin đăng nhập hoặc dò mật khẩu",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Spoofing",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công thử hàng loạt cặp tài khoản, mật khẩu bị lộ ở nơi khác (credential stuffing) hoặc dò mật khẩu của một tài khoản; thành công thì mạo danh người dùng thật.",
+                  "mitigation": "[Mitigate] Giới hạn số lần thử và làm chậm theo tài khoản và địa chỉ; ghi tài liệu cách cấu hình, tránh khóa tài khoản bị lợi dụng (REQ-03). Requirement: REQ-03.",
+                  "score": "9"
+                }
+              ],
+              "hasOpenThreats": true
+            }
+          },
+          {
+            "shape": "process",
+            "id": "9d4b40fd-84f7-536f-9856-eb786b7105e6",
+            "position": {
+              "x": 470,
+              "y": 370
+            },
+            "size": {
+              "width": 120,
+              "height": 120
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "P3 Tải file\nlên/xuống (mới)"
+              },
+              "body": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "P3 Tải file\nlên/xuống (mới)",
+              "description": "",
+              "type": "tm.Process",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "ab3eaee8-add2-5ed6-9682-dd17778159f1",
+                  "number": 12,
+                  "title": "T-12: Người dùng B truy cập file của người dùng A bằng cách đổi mã file",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Elevation of privilege",
+                  "modelType": "STRIDE",
+                  "description": "Đường dẫn /files/:id dự đoán được; người dùng đã đăng nhập đổi :id và đọc file không thuộc về mình (IDOR/BOLA): quyền truy cập dữ liệu không được kiểm tra theo từng đối tượng.",
+                  "mitigation": "[Mitigate] Kiểm tra quyền truy cập theo từng file ở tầng dịch vụ; mã file không đoán được chỉ là lớp phụ (REQ-02). Requirement: REQ-02.",
+                  "score": "6"
+                },
+                {
+                  "id": "61c92d65-3895-5f11-9d09-3375a96d0253",
+                  "number": 13,
+                  "title": "T-13: Tên file do người dùng gửi dẫn tới ghi ra ngoài thư mục lưu trữ",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Tampering",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công đặt tên file ../../app/src/app.js hoặc dùng đường dẫn tuyệt đối; nếu server ghép tên đó vào đường dẫn, file bị ghi đè hoặc ghi ra ngoài thư mục lưu trữ (path traversal).",
+                  "mitigation": "[Mitigate] Đặt tên file lưu trữ bằng giá trị server tự sinh, không dùng tên người dùng gửi (REQ-06). Requirement: REQ-06.",
+                  "score": "6"
+                },
+                {
+                  "id": "0bc1928c-cb42-5811-b45c-660666fb2346",
+                  "number": 14,
+                  "title": "T-14: Tải lên file rất lớn làm cạn đĩa hoặc bộ nhớ",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Denial of service",
+                  "modelType": "STRIDE",
+                  "description": "Một người dùng (hoặc kẻ có tài khoản miễn phí) tải liên tục file lớn; không có giới hạn kích thước thì đĩa đầy, ứng dụng ngừng hoạt động.",
+                  "mitigation": "[Mitigate] Giới hạn kích thước mỗi file, kể cả khi giải nén, theo giá trị ghi trong tài liệu (REQ-05). Requirement: REQ-05.",
+                  "score": "4"
+                }
+              ],
+              "hasOpenThreats": true
+            }
+          },
+          {
+            "shape": "store",
+            "id": "0feed11b-babb-5d7c-8fe7-d52daaa343f2",
+            "position": {
+              "x": 840,
+              "y": 30
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "D1 Sản phẩm,\nghi chú"
+              },
+              "topLine": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "D1 Sản phẩm,\nghi chú",
+              "description": "",
+              "type": "tm.Store",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [],
+              "hasOpenThreats": false,
+              "isALog": false,
+              "storesCredentials": false,
+              "isEncrypted": false,
+              "isSigned": false
+            }
+          },
+          {
+            "shape": "store",
+            "id": "a5522c97-6bdf-5ce2-b9f0-7dcd12e2222c",
+            "position": {
+              "x": 840,
+              "y": 210
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "D2 Tài khoản\n(băm mật khẩu)"
+              },
+              "topLine": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "D2 Tài khoản\n(băm mật khẩu)",
+              "description": "",
+              "type": "tm.Store",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "cbf646e8-e37a-559f-984f-e8cd4467f7a5",
+                  "number": 16,
+                  "title": "T-16: Lộ cơ sở dữ liệu tài khoản, mật khẩu băm yếu bị dò ngược",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Information disclosure",
+                  "modelType": "STRIDE",
+                  "description": "Kẻ tấn công đọc được kho tài khoản (qua lỗ hổng khác hoặc bản sao lưu). Nếu mật khẩu được băm yếu, chúng bị dò ngược và dùng ở dịch vụ khác của người dùng.",
+                  "mitigation": "[Mitigate] Chọn thuật toán băm mật khẩu được phê duyệt và chốt trong thiết kế đăng nhập. Chưa chọn requirement ASVS nào ở bộ L1 này (ADR-0003; SEC-003).",
+                  "score": "6"
+                }
+              ],
+              "hasOpenThreats": true,
+              "isALog": false,
+              "storesCredentials": true,
+              "isEncrypted": false,
+              "isSigned": false
+            }
+          },
+          {
+            "shape": "store",
+            "id": "8d2c94d2-8a90-51a6-8a42-95f8313e9524",
+            "position": {
+              "x": 840,
+              "y": 390
+            },
+            "size": {
+              "width": 160,
+              "height": 80
+            },
+            "zIndex": 1,
+            "attrs": {
+              "text": {
+                "text": "D3 File đã tải lên\n(volume)"
+              },
+              "topLine": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "stroke": "red",
+                "strokeWidth": 3,
+                "strokeDasharray": null
+              }
+            },
+            "data": {
+              "name": "D3 File đã tải lên\n(volume)",
+              "description": "",
+              "type": "tm.Store",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "threats": [
+                {
+                  "id": "079d417e-f3b7-54ba-8361-3b4344e98ade",
+                  "number": 15,
+                  "title": "T-15: File độc hại được lưu rồi phục vụ lại như nội dung tin cậy",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Tampering",
+                  "modelType": "STRIDE",
+                  "description": "Người dùng tải file HTML hoặc SVG chứa script; nếu ứng dụng phục vụ lại với Content-Type do người gửi khai báo thì trình duyệt của người khác chạy script đó.",
+                  "mitigation": "[Mitigate] Kiểm tra nội dung theo loại file đã ghi tài liệu và phục vụ kèm Content-Disposition: attachment (ASVS 5.2.2, 3.2.1). Chưa chọn vì thiết kế upload chưa có; ĐIỀU KIỆN TRƯỚC KHI MERGE tính năng tải file (SEC-007).",
+                  "score": "6"
+                }
+              ],
+              "hasOpenThreats": true,
+              "isALog": false,
+              "storesCredentials": false,
+              "isEncrypted": false,
+              "isSigned": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "df6498c5-e37a-54bb-b931-5df626ca20da",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F1 POST /login"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "7f08241d-0593-50c7-becc-e23e25123c26"
+            },
+            "target": {
+              "cell": "e8ec862c-c897-5504-9dec-42ebf07ae80e"
+            },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F1 POST /login",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTP",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "c4943249-73d9-55c3-ab47-4454ccc6a7cc",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F2 so khớp băm"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "e8ec862c-c897-5504-9dec-42ebf07ae80e"
+            },
+            "target": {
+              "cell": "a5522c97-6bdf-5ce2-b9f0-7dcd12e2222c"
+            },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F2 so khớp băm",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "gọi hàm trong tiến trình",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "32cd1787-c0b4-546d-ad15-25026eb8ab77",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F3 API + phiên"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "7f08241d-0593-50c7-becc-e23e25123c26"
+            },
+            "target": {
+              "cell": "8799ea25-0792-5bba-af90-9d7fb3a24b98"
+            },
+            "vertices": [
+              {
+                "x": 250,
+                "y": 70
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F3 API + phiên",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTP",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "97fa4693-c7b0-5457-b7f9-c63708f0daad",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F4 đọc, ghi ghi chú"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "8799ea25-0792-5bba-af90-9d7fb3a24b98"
+            },
+            "target": {
+              "cell": "0feed11b-babb-5d7c-8fe7-d52daaa343f2"
+            },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F4 đọc, ghi ghi chú",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "gọi hàm trong tiến trình",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "40a35f46-c49d-5c01-9f8c-76f198b3b8df",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F5 upload"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "7f08241d-0593-50c7-becc-e23e25123c26"
+            },
+            "target": {
+              "cell": "9d4b40fd-84f7-536f-9856-eb786b7105e6"
+            },
+            "vertices": [
+              {
+                "x": 250,
+                "y": 430
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F5 upload",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTP",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "299392d4-1c9a-54f6-a82a-f1fea1b7a06f",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F6 ghi file"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "9d4b40fd-84f7-536f-9856-eb786b7105e6"
+            },
+            "target": {
+              "cell": "8d2c94d2-8a90-51a6-8a42-95f8313e9524"
+            },
+            "vertices": [
+              {
+                "x": 700,
+                "y": 410
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F6 ghi file",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "ghi đĩa",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "35e510f4-08e9-5167-9013-141cb90d665f",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F7 tải xuống /files/:id"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "9d4b40fd-84f7-536f-9856-eb786b7105e6"
+            },
+            "target": {
+              "cell": "7f08241d-0593-50c7-becc-e23e25123c26"
+            },
+            "vertices": [
+              {
+                "x": 330,
+                "y": 330
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F7 tải xuống /files/:id",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "HTTP",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "flow",
+            "id": "6fbb4f76-d601-5ae6-b6fc-a0fedff42ce6",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "strokeWidth": 1,
+                "targetMarker": {
+                  "name": "block"
+                },
+                "strokeDasharray": null
+              }
+            },
+            "labels": [
+              {
+                "position": 0.5,
+                "attrs": {
+                  "label": {
+                    "text": "F8 đọc file"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "cell": "8d2c94d2-8a90-51a6-8a42-95f8313e9524"
+            },
+            "target": {
+              "cell": "9d4b40fd-84f7-536f-9856-eb786b7105e6"
+            },
+            "vertices": [
+              {
+                "x": 700,
+                "y": 470
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "F8 đọc file",
+              "description": "",
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "protocol": "đọc đĩa",
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "isBidirectional": false,
+              "hasOpenThreats": false,
+              "threats": [],
+              "isTrustBoundary": false
+            }
+          },
+          {
+            "shape": "trust-boundary-curve",
+            "id": "4fac60d0-b6a7-554b-b8a6-d9f90905d932",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "targetMarker": "",
+                "sourceMarker": ""
+              }
+            },
+            "labels": [
+              {
+                "attrs": {
+                  "text": {
+                    "text": "Ranh giới 1: người dùng | ứng dụng"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "x": 380,
+              "y": 0
+            },
+            "target": {
+              "x": 380,
+              "y": 520
+            },
+            "vertices": [
+              {
+                "x": 380,
+                "y": 260
+              }
+            ],
+            "data": {
+              "type": "tm.Boundary",
+              "name": "Ranh giới 1: người dùng | ứng dụng",
+              "description": "",
+              "isTrustBoundary": true,
+              "hasOpenThreats": false
+            }
+          },
+          {
+            "shape": "trust-boundary-curve",
+            "id": "90230fa0-2b87-5532-a418-6c864176073c",
+            "zIndex": 10,
+            "connector": "smooth",
+            "width": 200,
+            "height": 100,
+            "attrs": {
+              "line": {
+                "targetMarker": "",
+                "sourceMarker": ""
+              }
+            },
+            "labels": [
+              {
+                "attrs": {
+                  "text": {
+                    "text": "Ranh giới 2: tiến trình | dữ liệu"
+                  }
+                }
+              }
+            ],
+            "source": {
+              "x": 760,
+              "y": 0
+            },
+            "target": {
+              "x": 760,
+              "y": 520
+            },
+            "vertices": [
+              {
+                "x": 760,
+                "y": 260
+              }
+            ],
+            "data": {
+              "type": "tm.Boundary",
+              "name": "Ranh giới 2: tiến trình | dữ liệu",
+              "description": "",
+              "isTrustBoundary": true,
+              "hasOpenThreats": false
+            }
+          }
+        ]
+      }
+    ],
+    "diagramTop": 2,
+    "reviewer": "CTO RexCorp",
+    "threatTop": 17
+  }
+}
