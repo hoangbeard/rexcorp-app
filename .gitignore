@@ -7,3 +7,4 @@ npm-debug.log*
 /gitleaks.sarif
 # Báo cáo SAST chạy trên máy (nên ghi ra ngoài repo; dòng này phòng khi ghi nhầm vào gốc repo)
 /semgrep*.sarif
+/osv-scanner.sarif

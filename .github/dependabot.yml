@@ -1,0 +1,54 @@
+# Dependabot version updates cho rexcorp-app. Schema: version 2.
+# Dependabot alerts và security updates bật ở Settings > Advanced Security, không cấu hình ở file này.
+version: 2
+updates:
+  # Dependency của ứng dụng (package.json + package-lock.json).
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    # Chờ 7 ngày sau khi phiên bản mới ra mới đề xuất (không áp dụng cho security updates).
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      # Gom mọi bản minor và patch thành một pull request mỗi tuần; bản major vẫn mở riêng để đọc kỹ.
+      npm-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "deps"
+
+  # Action trong workflow: giữ nguyên cách pin theo SHA (ADR-0001), Dependabot cập nhật cả SHA lẫn comment phiên bản.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+
+  # Base image trong Dockerfile.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "docker"
