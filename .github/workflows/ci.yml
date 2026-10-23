@@ -15,6 +15,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secret-scan:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Gitleaks CLI v8.30.1 (MIT), pin theo digest. Không dùng gitleaks-action (EULA, xem ADR-0002).
+      GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+      # Phạm vi quét: lịch sử mà HEAD mang theo (commit merge của PR, hoặc main khi push).
+      # Mặc định của `gitleaks git` là --all: mọi ref, kể cả nhánh khác của origin
+      # mà checkout fetch-depth 0 đã tải về. Giữ hai cờ còn lại của mặc định.
+      GITLEAKS_LOG_OPTS: --full-history --diff-filter=tuxdb HEAD
+    steps:
+      - name: Checkout (toàn bộ lịch sử)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks git cần mọi commit, không chỉ commit cuối
+          persist-credentials: false
+
+      - name: Gitleaks quét lịch sử git (gate)
+        # Exit code 1 khi có finding mới (không nằm trong .gitleaksignore) -> job fail -> gate chặn.
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE":/repo -w /repo "$GITLEAKS_IMAGE" \
+            git /repo --redact --no-banner --verbose \
+            --log-opts="$GITLEAKS_LOG_OPTS" \
+            --report-format sarif --report-path /repo/gitleaks.sarif
+
+      - name: Lưu báo cáo SARIF làm artifact
+        if: ${{ !cancelled() }} # vẫn lưu khi bước quét fail, để làm bằng chứng
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gitleaks-sarif
+          path: gitleaks.sarif
+          if-no-files-found: error
+          retention-days: 30
+
   test:
     name: Test (Node.js)
     runs-on: ubuntu-24.04
@@ -39,7 +75,7 @@ jobs:
 
   docker-build:
     name: Build container image
-    needs: test
+    needs: [secret-scan, test]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
