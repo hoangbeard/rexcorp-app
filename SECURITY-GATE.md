@@ -81,7 +81,30 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 
 ### Dependency, SCA và SBOM (module 05)
 
-Chưa áp dụng.
+#### SCA: lỗ hổng trong dependency
+
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | OSV-Scanner v2.6.0, image `ghcr.io/google/osv-scanner:v2.6.0@sha256:afd838850ac1a0fcc15ff4a041dc9ba11123c3f0d2666217a5f0fcf9222b55fa`, chạy trong workflow `dependency-scan.yml`. Bổ sung: `actions/dependency-review-action` v5.0.0 (pin SHA `a1d282b36b6f3519aa1f3fc636f609c47dddb294`) trong `dependency-review.yml`; Dependabot alerts, security updates và version updates (`.github/dependabot.yml`) |
+| Chạy ở đâu | (1) Pull request và push lên `main`: job `osv-scanner` quét `package-lock.json`. (2) Pull request: job `dependency-review` chỉ xét phần thay đổi. (3) Mỗi sáng thứ Hai: `osv-scanner` chạy theo lịch để bắt advisory mới cho dependency đã có. (4) Liên tục: Dependabot alerts trên GitHub |
+| Điều kiện chặn | Mọi lỗ hổng chưa nằm trong `osv-scanner.toml` làm job `osv-scanner` fail (exit code 1), không phân biệt mức độ. Riêng pull request: `dependency-review` fail khi thay đổi đưa vào lỗ hổng mức high trở lên hoặc giấy phép ngoài danh sách MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0 |
+| Baseline / ngoại lệ | File `osv-scanner.toml` ở gốc repo, mỗi ngoại lệ là một khối `[[IgnoredVulns]]` có `id`, `ignoreUntil` (tối đa 30 ngày) và `reason` (lý do kỹ thuật, ID trong `docs/security-backlog-dependencies.md`, người chịu trách nhiệm). Hết hạn thì gate lại báo. Người phụ trách bảo mật duyệt qua pull request; người xin không tự duyệt. Trạng thái hiện tại: không có ngoại lệ |
+| Bằng chứng | Artifact `osv-scanner-sarif` (SARIF 2.1.0) của mỗi lần chạy, giữ 30 ngày; log job. Artifact của repo public ai đăng nhập cũng tải được: báo cáo SCA không chứa secret nhưng cho biết phiên bản đang dùng |
+| Triage và thời hạn xử lý | Lỗ hổng mức Critical trong dependency production: xử lý trong 7 ngày hoặc ghi ngoại lệ có lý do; High: 30 ngày; còn lại: 90 ngày. Pull request của Dependabot được xem trong tuần. Thêm thư viện production mới: theo bảng đánh giá ở Bài 2 và ADR |
+| Căn cứ framework | NIST SSDF 1.1: PW.4.1 (lấy và duy trì thành phần bên thứ ba có bảo mật), PW.4.4 Ex. 2 (tự động phát hiện lỗ hổng đã biết trong toolchain), RV.1.1 Ex. 3 (tự động rà soát dữ liệu thành phần để tìm lỗ hổng mới), PO.4.1 và PO.4.2 (tiêu chí và quyết định tự động). OWASP ASVS 5.0 V15.1.1 và V15.2.1 (L1). OpenSSF S2C2F: SCA-1, UPD-2, UPD-3 (ánh xạ của khóa học). NCCoE: SCA System là component của phase Develop và Build |
+
+
+#### SBOM
+
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | Syft v1.55.0, image `anchore/syft:v1.55.0@sha256:4cc92b64ca74ffca4c94d4c8fcc01f217731375300be14d0b6eeb2e82eaa110a`, workflow `sbom.yml`. Định dạng: CycloneDX 1.7 (JSON) và SPDX 2.3 (JSON). Công cụ đối chiếu: Trivy v0.76.1 (không chạy trong CI) |
+| Chạy ở đâu | Mỗi lần merge vào `main` và mỗi pull request. SBOM sản phẩm gồm package npm production; không gồm `devDependencies`, không gồm action trong workflow |
+| Điều kiện chặn | Job `sbom` fail khi: (1) `scripts/scvs-l1-check.sh` báo FAIL cho một trong SCVS 2.1, 2.3, 2.7, 2.9, 2.12, 2.14, hoặc (2) OSV-Scanner tìm thấy lỗ hổng chưa có trong `osv-scanner.toml` khi quét chính file SBOM (SCVS 2.8) |
+| Lưu và giao | Artifact `sbom-rexcorp-app` giữ 90 ngày; SBOM đính kèm bản phát hành. Nội dung giao khách theo `docs/sbom/README.md`: phạm vi, ngày tạo |
+| Mức SCVS đạt | L1 cho family V2 (SBOM): đạt 2.1, 2.3, 2.7, 2.9, 2.12, 2.14 và 2.8 theo cách kiểm ở trên. Chưa đạt: 2.2 (tạo tự động và tái lập được: mới có "tự động"), 2.4 và 2.5 (ký), 2.18 (hash). Các family V1, V3 đến V6 của SCVS chưa được đánh giá |
+| Triage và thời hạn xử lý | SBOM sai hoặc thiếu so với lockfile (2.9 fail): sửa trong 3 ngày làm việc. Khách hàng báo thiếu trường: ghi vào backlog, trả lời trong 5 ngày làm việc |
+| Căn cứ framework | NIST SSDF 1.1: PS.3.2 (thu thập, bảo vệ, duy trì và chia sẻ dữ liệu provenance của từng thành phần, ví dụ SBOM; Ex. 1 dùng định dạng chuẩn, Ex. 4 cập nhật mỗi khi thành phần đổi), PW.4.1 Ex. 3 (lấy provenance của thành phần và phân tích rủi ro), RV.1.1 Ex. 3. OWASP SCVS V2 L1. NCCoE: "Provenance Generation and Verification Tool (e.g., SBOM)" ở phase Build, Test, Release |
 
 ### Container image và cấu hình (module 06)
 
