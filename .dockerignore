@@ -1,0 +1,13 @@
+# Chỉ đưa vào build context những gì image cần: package*.json và src/.
+.git
+.github
+node_modules
+npm-debug.log*
+.env
+.env.*
+test
+docs
+*.md
+compose.yaml
+Dockerfile
+.dockerignore
