@@ -69,7 +69,15 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 
 ### SAST: phân tích tĩnh mã nguồn (module 04)
 
-Chưa áp dụng.
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | Semgrep CE 1.182.0 (engine LGPL-2.1), image `semgrep/semgrep:1.182.0@sha256:4a34048c04fef049f71665047f074cffb00cc3d89482f965a5cd151d589237af`, chạy bằng `docker run` trong `.github/workflows/sast.yml` (action pin theo SHA). Rule: (1) `.semgrep/rules/` do RexCorp viết, giấy phép MIT, có test; (2) gói `p/default` của registry, dùng nội bộ theo Semgrep Rules License v1.0, tải mỗi lần chạy, không gắn phiên bản. Luôn có `--metrics off`. Ghi lý do chọn trong ADR-0004 |
+| Chạy ở đâu | Pull request (gate), push lên `main`, và hằng tuần (thứ Hai 03:17 UTC, quét toàn bộ). IDE: khuyến nghị extension Semgrep, chưa bắt buộc |
+| Điều kiện chặn | Mọi finding mức **ERROR** làm job fail (`--severity ERROR --error`). Repo mới, không có nợ cũ nên không dùng baseline. WARNING và INFO không chặn, nằm trong báo cáo đầy đủ. Loại lỗi mà requirement bắt buộc chặn (hiện có: XSS phản xạ) phải có rule của repo ở mức ERROR; không dựa vào mức severity của rule registry |
+| Baseline / ngoại lệ | Không baseline. Ngoại lệ theo từng dòng: `// nosemgrep: <rule-id> -- <ID>: <lý do>; xem lại trước <ngày>`. Cấm `nosemgrep` không kèm rule ID. Hạn tối đa 6 tháng. Thêm đường dẫn vào `.semgrepignore` cũng là ngoại lệ: cùng quy trình. Mọi thay đổi qua pull request do người phụ trách bảo mật duyệt; người xin không tự duyệt. Sửa hoặc thêm rule phải kèm test `semgrep --test` trong cùng pull request |
+| Bằng chứng | Artifact `semgrep-sarif` (SARIF 2.1.0): `semgrep-gate.sarif` (chỉ ERROR) và `semgrep-all.sarif` (mọi mức, có finding bị `nosemgrep` với `suppressions`), giữ 30 ngày; bảng triage `docs/sast-triage.md` |
+| Triage và thời hạn xử lý | Finding ERROR: triage trong 1 ngày làm việc; bản thật phải sửa trước khi merge. WARNING: xem hằng tuần; bản thật sửa trong 30 ngày hoặc ghi lý do vào `docs/sast-triage.md`. False positive: sửa rule (kèm test) hoặc ngoại lệ trong 3 ngày làm việc. Hằng tháng: xem lại tỷ lệ false positive theo rule và các ngoại lệ sắp hết hạn |
+| Căn cứ framework | NIST SSDF 1.1: PW.7.1 (quyết định dùng phân tích code), PW.7.2 (thực hiện, ghi lại và triage mọi issue), PW.5.1 (mã hóa output); ánh xạ của khóa học: PO.3.1, PO.3.2, PO.3.3, PO.4.1, PO.4.2. Bản đồ pipeline NCCoE: SAST System, phase Develop, Build, Test (§2.2.2 đến §2.2.4). OWASP ASVS 5.0.0: V1.2.1 (mã hóa output, L1). Giới hạn của công cụ tự động: ASVS, phần Assessment and Certification |
 
 ### Dependency, SCA và SBOM (module 05)
 
