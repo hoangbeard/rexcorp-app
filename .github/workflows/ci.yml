@@ -39,7 +39,6 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" \
             -v "$GITHUB_WORKSPACE":/repo -w /repo "$GITLEAKS_IMAGE" \
             git /repo --redact --no-banner --verbose \
-            --log-opts="$GITLEAKS_LOG_OPTS" \
             --report-format sarif --report-path /repo/gitleaks.sarif
 
       - name: Lưu báo cáo SARIF làm artifact
