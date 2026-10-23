@@ -1,0 +1,9 @@
+# Ngoại lệ của gate quét secret (Gitleaks). Mỗi dòng không bắt đầu bằng # là một Fingerprint.
+# Mỗi mục phải có comment ngay phía trên: lý do, người chịu trách nhiệm, ngày hết hạn.
+# Quy định: SECURITY-GATE.md, mục "Quét secret".
+
+# SEC-001: API key (giả) của dịch vụ thông báo, commit 00a2a3a, Lab 01.
+# Đã thu hồi và cấp key mới (mô phỏng) ngày 2026-10-23; quyết định không viết lại lịch sử,
+# xem docs/runbooks/leaked-secret.md. Người chịu trách nhiệm: p1 (phụ trách bảo mật).
+# Hết hạn: 2027-04-23.
+00a2a3a2ec4314d1fb25bed793c513b1d2c886ef:src/config.js:generic-api-key:3
