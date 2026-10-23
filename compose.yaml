@@ -1,0 +1,13 @@
+# Chạy rexcorp-app trên máy của bạn: docker compose up --build
+# Cổng chỉ publish ra 127.0.0.1, nên máy khác trong mạng không truy cập được.
+# Cổng 3000 đã bị chiếm? Đổi cổng phía host: REXCORP_PORT=3300 docker compose up --build
+services:
+  app:
+    build: .
+    image: rexcorp-app:local
+    init: true
+    ports:
+      - "127.0.0.1:${REXCORP_PORT:-3000}:3000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

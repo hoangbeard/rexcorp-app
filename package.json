@@ -1,0 +1,19 @@
+{
+  "name": "rexcorp-app",
+  "version": "0.1.0",
+  "description": "RexCorp Catalogue API: ứng dụng mẫu của khóa DevSecOps Nền tảng (RexLearn)",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24.11.0"
+  },
+  "dependencies": {
+    "express": "5.2.1"
+  }
+}
