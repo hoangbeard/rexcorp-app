@@ -1,0 +1,76 @@
+name: Workflow lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * 1" # thứ Hai hằng tuần: chạy cả các audit online của zizmor
+
+# Quyền tối thiểu cho GITHUB_TOKEN ở mọi job: chỉ đọc mã nguồn.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workflow-lint:
+    name: Workflow lint (actionlint, zizmor)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # actionlint 1.7.12 và zizmor 1.31.1, pin theo digest (xem ADR-0009).
+      ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+      ZIZMOR_IMAGE: ghcr.io/zizmorcore/zizmor:1.31.1@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: actionlint (gate - lỗi cú pháp và biểu thức)
+        # Exit code 1 khi có lỗi -> job fail -> gate chặn.
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/repo -w /repo "$ACTIONLINT_IMAGE"
+
+      - name: zizmor, xuất SARIF làm bằng chứng
+        # Ở chế độ SARIF zizmor luôn thoát 0 (kết quả nằm trong file); bước gate nằm ở bước sau.
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/repo "$ZIZMOR_IMAGE" \
+            --offline --persona=pedantic --format=sarif /repo > zizmor.sarif
+
+      - name: Lưu báo cáo SARIF làm artifact
+        if: ${{ !cancelled() }} # vẫn lưu khi gate fail, để làm bằng chứng
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zizmor-sarif
+          path: zizmor.sarif
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: zizmor (gate - mọi finding ở persona pedantic)
+        # --persona=pedantic: persona mặc định im lặng với `permissions: write-all` (Lab 09a, Bước 2).
+        # --offline: kết quả chỉ phụ thuộc vào file trong repo, nên gate tất định.
+        # Exit code 11 đến 14 theo mức cao nhất của finding (zizmor docs, mục Exit codes).
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/repo "$ZIZMOR_IMAGE" --offline --persona=pedantic /repo
+
+  zizmor-online:
+    name: Workflow lint online (zizmor, theo lịch)
+    # Chỉ chạy theo lịch, không phải required check: kết quả phụ thuộc trạng thái từ xa của các action.
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ZIZMOR_IMAGE: ghcr.io/zizmorcore/zizmor:1.31.1@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: zizmor với audit online (impostor commit, action có lỗ hổng đã biết)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm -e GH_TOKEN -v "$GITHUB_WORKSPACE":/repo "$ZIZMOR_IMAGE" --persona=pedantic /repo

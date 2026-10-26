@@ -1,0 +1,24 @@
+name: Release gate
+
+# Mẫu job gác bằng environment (Lab 09a, Bước 7). Chạy tay (workflow_dispatch), chưa deploy thật.
+# Job `approve-demo` dùng environment `production`: GitHub chờ người duyệt (nếu bạn đã đặt
+# Required reviewers) rồi mới cho job chạy và đọc secret của environment.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  approve-demo:
+    name: Release gate (production)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Xác nhận đã qua cổng duyệt
+        run: echo "Job này chỉ chạy sau khi environment production cho phép."
