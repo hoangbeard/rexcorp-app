@@ -1,12 +1,17 @@
 name: Triage enrichment
 
-# Mỗi tuần: lấy danh sách CVE trong package-lock.json, ghép với CISA KEV và EPSS (scripts/kev-epss.sh), lưu bảng làm artifact.
+# Mỗi ngày: lấy danh sách CVE trong package-lock.json, ghép với CISA KEV và EPSS (scripts/kev-epss.sh), lưu bảng làm artifact.
+# Chạy hằng NGÀY (không hằng tuần) vì hạn P1 chỉ có 3 ngày: chạy hằng tuần thì một CVE vào KEV ngay sau lần chạy phải chờ tới
+# 7 ngày mới được thấy (docs/frameworks/remediation-sla.md). GitHub không có trigger "khi KEV có mục mới", nên lịch hằng ngày là cách thay thế.
 # KHÔNG chạy trên pull request: KEV và EPSS đổi hằng ngày, nên điều kiện chặn của pull request không dùng chúng (ADR-0008).
-# Lần chạy này fail khi có CVE trong KEV: đó là tín hiệu "xem lại bậc ưu tiên ngay" (P1 hoặc P2 theo bảng triage).
+# Lần chạy này fail khi có CVE trong KEV mà CHƯA nằm trong bản triage nào ở docs/triage/: đó là tín hiệu "xếp hạng ngay".
+# CVE đã được triage (có tên trong docs/triage/*.md) không làm job đỏ lại mỗi ngày.
 on:
   schedule:
-    - cron: "41 4 * * 1" # thứ Hai hằng tuần, 04:41 UTC
+    - cron: "41 4 * * *" # hằng ngày, 04:41 UTC (tránh đầu giờ, lúc GitHub tải cao)
   workflow_dispatch:
+  push:
+    branches: ['wBfix2/**'] # CHỈ cho lần thử trên nhánh sandbox, không có trong bản của khóa học
 
 permissions:
   contents: read
@@ -65,10 +70,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Fail khi có CVE trong KEV
+      - name: Fail khi có CVE trong KEV chưa được triage
         run: |
-          if awk -F'\t' '!/^#/ && $2 == "yes" { found = 1 } END { exit !found }' "$RUNNER_TEMP/triage/kev-epss.tsv"; then
-            echo "::error::Có CVE nằm trong CISA KEV. Xem artifact kev-epss và xếp lại bậc ưu tiên theo SECURITY-GATE.md."
-            awk -F'\t' '!/^#/ && $2 == "yes"' "$RUNNER_TEMP/triage/kev-epss.tsv"
+          awk -F'\t' '!/^#/ && $2 == "yes" { print $1 }' "$RUNNER_TEMP/triage/kev-epss.tsv" | sort -u > "$RUNNER_TEMP/triage/kev-now.txt"
+          # CVE đã nhắc trong bản triage thì coi là đã có hạng và người phụ trách.
+          { grep -rhoE 'CVE-[0-9]{4}-[0-9]{4,}' docs/triage 2>/dev/null || true; } | sort -u > "$RUNNER_TEMP/triage/triaged.txt"
+          comm -23 "$RUNNER_TEMP/triage/kev-now.txt" "$RUNNER_TEMP/triage/triaged.txt" > "$RUNNER_TEMP/triage/kev-new.txt"
+          if [ -s "$RUNNER_TEMP/triage/kev-new.txt" ]; then
+            echo "::error::Có CVE nằm trong CISA KEV mà chưa có trong docs/triage/. Xếp hạng theo SECURITY-GATE.md và ghi vào bản triage."
+            cat "$RUNNER_TEMP/triage/kev-new.txt"
             exit 1
           fi
+          echo "KEV: $(wc -l < "$RUNNER_TEMP/triage/kev-now.txt" | tr -d ' ') CVE, tất cả đã được triage (hoặc không có)."
