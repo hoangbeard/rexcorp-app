@@ -1,0 +1,20 @@
+# Người duyệt policy và cấu hình gate. Thay @ten-github-cua-ban bằng tài khoản (hoặc @org/team) có quyền ghi vào repo.
+# Quy tắc: "last matching pattern takes the most precedence"; mọi dòng dưới đây cùng một người, nên thứ tự không đổi kết quả.
+# CODEOWNERS chỉ có hiệu lực khi ruleset (hoặc branch protection) bật "Require review from Code Owners".
+
+/SECURITY-GATE.md            @ten-github-cua-ban
+/SECURITY-REQUIREMENTS.md    @ten-github-cua-ban
+/docs/security-exceptions.md @ten-github-cua-ban
+/docs/adr/                   @ten-github-cua-ban
+/docs/rulesets/              @ten-github-cua-ban
+/.github/CODEOWNERS          @ten-github-cua-ban
+/.github/workflows/          @ten-github-cua-ban
+/.github/dependabot.yml      @ten-github-cua-ban
+/.gitleaksignore             @ten-github-cua-ban
+/.semgrep/                   @ten-github-cua-ban
+/.semgrepignore              @ten-github-cua-ban
+/.zap/                       @ten-github-cua-ban
+/.hadolint.yaml              @ten-github-cua-ban
+/.trivyignore.yaml           @ten-github-cua-ban
+/osv-scanner.toml            @ten-github-cua-ban
+/scripts/                    @ten-github-cua-ban
