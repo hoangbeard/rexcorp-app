@@ -1,15 +1,13 @@
-# Ngoại lệ của gate quét image (Trivy). Mỗi mục: id, statement (lý do, người chịu trách nhiệm, điều kiện gỡ), expired_at (tối đa 30 ngày).
-# Quy định: SECURITY-GATE.md, mục "Container image và cấu hình".
-vulnerabilities:
-  - id: CVE-2026-102276
-    statement: "brace-expansion đã có bản vá 5.0.10, 3.0.7, 2.1.5, 1.1.19, nhưng image chưa được dựng lại. Chủ sở hữu: kỹ sư DevOps phụ trách bảo mật. Gỡ khi: dựng lại image không còn gói này (ADR-0006)."
-    expired_at: 2026-11-09
-  - id: CVE-2026-102278
-    statement: "brace-expansion đã có bản vá 5.0.11, 3.0.8, 2.1.6, 1.1.20, nhưng image chưa được dựng lại. Chủ sở hữu: kỹ sư DevOps phụ trách bảo mật. Gỡ khi: dựng lại image không còn gói này (ADR-0006)."
-    expired_at: 2026-11-09
-  - id: CVE-2026-109869
-    statement: "undici đã có bản vá 6.29.1, 7.30.1, 8.12.2, nhưng image chưa được dựng lại. Chủ sở hữu: kỹ sư DevOps phụ trách bảo mật. Gỡ khi: dựng lại image không còn gói này (ADR-0006)."
-    expired_at: 2026-11-09
-  - id: CVE-2026-19534
-    statement: "undici đã có bản vá 6.28.1, 7.29.1, 8.10.2, nhưng image chưa được dựng lại. Chủ sở hữu: kỹ sư DevOps phụ trách bảo mật. Gỡ khi: dựng lại image không còn gói này (ADR-0006)."
-    expired_at: 2026-11-09
+# Ngoại lệ của gate quét image và cấu hình (Trivy). Đọc bằng cờ --ignorefile (tính năng .trivyignore.yaml còn EXPERIMENTAL).
+# Mỗi mục bắt buộc có: id, statement (lý do + người chịu trách nhiệm + điều kiện gỡ) và expired_at (tối đa 30 ngày).
+# Trivy KHÔNG bắt buộc expired_at: thiếu trường này thì ngoại lệ có hiệu lực mãi mãi, nên review pull request phải kiểm tra.
+# Quy định: SECURITY-GATE.md, mục "Container image và cấu hình". Người duyệt: người phụ trách bảo mật.
+#
+# Hiện không có ngoại lệ nào: sau ADR-0006 (chuyển sang distroless) image không còn finding HIGH/CRITICAL đã có bản vá.
+# Mẫu một mục:
+#
+#   vulnerabilities:
+#     - id: CVE-AAAA-NNNN
+#       statement: "Lý do. Chủ sở hữu: tên. Gỡ khi: base image có bản vá."
+#       expired_at: 2026-11-24
+vulnerabilities: []

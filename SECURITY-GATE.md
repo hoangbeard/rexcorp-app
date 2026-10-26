@@ -63,7 +63,16 @@ Chưa áp dụng.
 
 ### Container image và cấu hình (module 06)
 
-Chưa áp dụng.
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | Image: Trivy v0.76.1 (`ghcr.io/aquasecurity/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c`; release immutable, chữ ký cosign xác minh trước khi pin). Dockerfile: hadolint v2.15.1 (`hadolint/hadolint:v2.15.1@sha256:32dac941…`) và Trivy config. Docker Compose: KICS v2.1.20 (`checkmarx/kics:v2.1.20@sha256:3e5a268e…`; không dùng tag `latest`, không dùng `kics-github-action`). Grype v0.121.0 chỉ để đối chiếu trong báo cáo, không phải gate |
+| Chạy ở đâu | Workflow `.github/workflows/container.yml`: mọi `pull_request`, mọi push lên `main`, và lần chạy theo lịch thứ Hai hằng tuần 03:41 UTC (bắt CVE mới công bố sau khi build). Job `config-scan` (hadolint, Trivy config, KICS) và job `image-scan` (dựng image, `docker save`, Trivy quét từ file tar, không mount `docker.sock`) |
+| Điều kiện chặn | `image-scan`: mọi finding HIGH hoặc CRITICAL **đã có bản vá** (`--ignore-unfixed`) không nằm trong `.trivyignore.yaml`, hoặc secret trong image. `config-scan`: hadolint từ mức warning; Trivy config từ mức HIGH; KICS từ mức HIGH. Mọi gate fail độc lập, một lần chạy cho thấy hết. Finding chưa có bản vá không chặn nhưng nằm trong `trivy-image-all.json` và được xem trong buổi triage hằng tuần |
+| Baseline / ngoại lệ | `.trivyignore.yaml` ở gốc repo (đọc bằng `--ignorefile`). Mỗi mục bắt buộc có `id`, `statement` (lý do, người chịu trách nhiệm, điều kiện gỡ) và `expired_at` tối đa 30 ngày sau ngày thêm. Trivy **không** ép `expired_at`, nên người duyệt pull request kiểm tra từng mục. Người phụ trách bảo mật duyệt; người xin ngoại lệ không tự duyệt. Hiện không có mục nào |
+| Bằng chứng | Artifact `config-scan-reports` (SARIF của hadolint, Trivy config, KICS; JSON của KICS) và `image-scan-reports` (`trivy-image-all.json` đủ mọi mức, `trivy-image-gate.sarif`), giữ 30 ngày. Artifact của repo public ai đăng nhập GitHub cũng tải được: báo cáo không chứa secret (Trivy che giá trị) nhưng liệt kê gói và phiên bản |
+| Triage và thời hạn xử lý | Người triage: người phụ trách bảo mật, hằng tuần sau lần chạy theo lịch. Có bản vá và gate đỏ: dựng lại image với base mới theo bảng SLA duy nhất của khóa học (`docs/frameworks/remediation-sla.md`): Critical 7 ngày, High 14 ngày, Medium 30 ngày; hạng Khẩn 3 ngày khi triage thấy dấu hiệu khai thác thật. Nghi báo nhầm: triage trong 3 ngày làm việc, ghi lý do vào `statement` |
+| Quy tắc cấu hình | Image chạy bằng user số (65532), không shell, không package manager; base image và mọi `FROM` pin theo digest; compose không `privileged`, không mount `docker.sock`, không publish cổng ra mọi interface, có `cap_drop: [ALL]`, `read_only: true`, `no-new-privileges` |
+| Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PW.4.1 và PW.4.4 (thành phần bên thứ ba, phát hiện lỗ hổng đã biết trong toolchain), PW.9.1 (secure baseline), RV.1.1 và RV.2.2 (quét lại liên tục; quyết định sửa hay xử lý cách khác), PO.3 và PO.4 (công cụ trong toolchain, tiêu chí kiểm tra). Bản đồ pipeline NCCoE: Container Image Scanner và IaC Scanner là component của phase Build. ADR-0006 |
 
 ### DAST: kiểm thử động (module 07)
 
@@ -82,3 +91,4 @@ Chưa áp dụng.
 | Ngày | Người sửa | Thay đổi |
 |---|---|---|
 | 2026-10-05 | Kỹ sư DevOps phụ trách bảo mật | Tạo file; thêm mục "Quét secret" (Lab 02) |
+| 2026-10-26 | Học viên (p1) | Điền mục "Container image và cấu hình" (Lab 06) |
