@@ -5,3 +5,5 @@ npm-debug.log*
 .DS_Store
 # Báo cáo của Gitleaks khi chạy gate trên máy (chỉ ở gốc repo)
 /gitleaks.sarif
+# Báo cáo của ZAP khi chạy scripts/dast-scan.sh trên máy
+/zap-out/
