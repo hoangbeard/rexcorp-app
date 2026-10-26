@@ -1,4 +1,5 @@
 import express from 'express';
+import { securityHeaders } from './security-headers.js';
 import { createStore } from './store.js';
 
 const CATEGORIES = new Set(['hardware', 'service']);
@@ -27,6 +28,7 @@ export function createApp({ store = createStore() } = {}) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use(securityHeaders);
   app.use(express.json({ limit: '10kb' }));
 
   app.get('/healthz', (req, res) => {
