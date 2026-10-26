@@ -1,0 +1,54 @@
+#!/bin/sh
+# Pre-commit hook: Gitleaks quét phần thay đổi đã stage, chặn commit nếu thấy secret.
+# Bật cho repo này (mỗi người một lần):  git config core.hooksPath .githooks
+# Bỏ qua trong trường hợp đặc biệt:     git commit --no-verify  (CI vẫn quét lại)
+#
+# Image pin theo digest, giống hệt image trong .github/workflows/ci.yml.
+GITLEAKS_IMAGE="ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f"
+
+# Daemon bị treo (khác với daemon tắt) làm `docker info` chờ mãi, và commit đứng im theo.
+# macOS không có lệnh `timeout`, nên hook tự đợi tối đa 10 giây rồi dừng `docker info`.
+docker_status=0
+if ! command -v docker >/dev/null 2>&1; then
+  docker_status=1
+else
+  docker info >/dev/null 2>&1 &
+  info_pid=$!
+  ticks=0
+  while kill -0 "$info_pid" 2>/dev/null; do
+    if [ "$ticks" -ge 20 ]; then
+      kill "$info_pid" 2>/dev/null
+      docker_status=124
+      break
+    fi
+    sleep 0.5
+    ticks=$((ticks + 1))
+  done
+  if [ "$docker_status" -eq 0 ] && ! wait "$info_pid"; then
+    docker_status=1
+  fi
+fi
+if [ "$docker_status" -eq 124 ]; then
+  echo "pre-commit: Docker không trả lời sau 10 giây (daemon treo). Khởi động lại Docker Desktop/OrbStack rồi commit lại." >&2
+  exit 1
+elif [ "$docker_status" -ne 0 ]; then
+  echo "pre-commit: cần Docker đang chạy để quét secret bằng Gitleaks. Bật Docker rồi commit lại." >&2
+  exit 1
+fi
+
+TOP="$(cd "$(git rev-parse --show-toplevel)" && pwd -P)"
+
+# `git commit -a` hoặc `git commit <file>` dùng một index tạm (GIT_INDEX_FILE).
+# Chuyển đường dẫn đó sang đường dẫn bên trong container.
+INDEX_ENV=""
+if [ -n "${GIT_INDEX_FILE:-}" ]; then
+  IDX_DIR="$(cd "$(dirname "$GIT_INDEX_FILE")" && pwd -P)"
+  case "$IDX_DIR" in
+    "$TOP"|"$TOP"/*) INDEX_ENV="GIT_INDEX_FILE=/repo${IDX_DIR#"$TOP"}/$(basename "$GIT_INDEX_FILE")" ;;
+    *) echo "pre-commit: index ($GIT_INDEX_FILE) nằm ngoài repo, hook không quét được." >&2; exit 1 ;;
+  esac
+fi
+
+exec docker run --rm --user "$(id -u):$(id -g)" ${INDEX_ENV:+-e "$INDEX_ENV"} \
+  -v "$TOP":/repo -w /repo "$GITLEAKS_IMAGE" \
+  git --pre-commit --staged --redact --no-banner --verbose /repo
