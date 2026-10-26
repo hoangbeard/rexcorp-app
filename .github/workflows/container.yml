@@ -29,7 +29,8 @@ jobs:
       # Mọi công cụ chạy bằng container image pin theo digest. Xem ADR-0006 và Lab 06 về cách xác minh từng digest.
       HADOLINT_IMAGE: hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d
       TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
-      # KICS v2.1.20: bản duy nhất Checkmarx khuyến nghị sau sự cố 2026; không dùng tag latest. Image v2.2.0 xuất hiện trên Docker Hub ngày 2026-10-21 nhưng Checkmarx chưa nêu nó trong khuyến nghị, nên khóa học giữ digest cũ.
+      # KICS v2.1.20, pin theo digest đã đối chiếu với IoC của Checkmarx (tag này từng bị ghi đè ngày 2026-04-22, nên digest quan trọng hơn tên tag); không dùng tag latest.
+      # Image v2.1.21 và v2.2.0 xuất hiện trên Docker Hub tháng 10/2026; Checkmarx chưa nêu bản nào trong hai bản đó là an toàn, nên khóa học giữ digest cũ (Lab 06, Bước 4).
       KICS_IMAGE: checkmarx/kics:v2.1.20@sha256:3e5a268eb8adda2e5a483c9359ddfc4cd520ab856a7076dc0b1d8784a37e2602
     steps:
       - name: Checkout
@@ -101,6 +102,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Ngày hiện tại (khóa cache)
+        id: day
+        run: echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache cơ sở dữ liệu lỗ hổng của Trivy (theo ngày)
+        # Trivy tải ~130 MiB (giải nén ra ~1,5 GiB) mỗi lần chạy nếu thư mục cache trống. Khóa theo ngày: cache cũ vẫn dùng được
+        # (restore-keys), Trivy tự tải bản mới khi cơ sở dữ liệu trong cache quá hạn. Cache chỉ chứa cơ sở dữ liệu công khai, không chứa secret.
+        id: trivy-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/trivy-cache
+          key: trivy-db-${{ steps.day.outputs.value }}
+          restore-keys: trivy-db-
 
       - name: Dựng image và xuất ra file tar
         # Quét từ file tar nên container Trivy không cần /var/run/docker.sock (quyền root trên host).
