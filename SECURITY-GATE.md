@@ -76,7 +76,15 @@ Chưa áp dụng.
 
 ### DAST: kiểm thử động (module 07)
 
-Chưa áp dụng.
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | ZAP 2.17.0 (Apache-2.0), image `ghcr.io/zaproxy/zaproxy:stable@sha256:5ccfff9a411743ab2615136a2edd7416bec9ce41572fa94e935df38c14adb2b6`, chạy bằng `scripts/dast-scan.sh` (hai lượt: `zap-baseline.py` và `zap-api-scan.py -S`). Không dùng `zaproxy/action-baseline` (xem ADR-0007). Tiêu chí gate: `.zap/rules.tsv`. Mô tả route cho API scan: `.zap/openapi.yaml` |
+| Chạy ở đâu | Job `zap` trong `.github/workflows/dast.yml`: mọi `pull_request`, push lên `main`, và theo lịch thứ Hai hằng tuần. Ứng dụng chạy ngay trong job, trong một mạng Docker `--internal`, không publish cổng. Chỉ quét ứng dụng này, không quét host nào khác. Quét chủ động (full scan, API scan không có `-S`): chỉ trên môi trường tạm hoặc staging do RexCorp sở hữu, sau khi báo bên vận hành; không nằm trong gate |
+| Điều kiện chặn | Rule đặt `FAIL` trong `.zap/rules.tsv` có ít nhất một alert trong lượt quét baseline hoặc API scan: ZAP exit 1, job fail. Rule `WARN` chỉ in ra, không chặn. Rule `IGNORE` không hiện |
+| Baseline / ngoại lệ | `.zap/rules.tsv`: mỗi dòng `FAIL` và `IGNORE` có cột ghi chú (căn cứ requirement hoặc lý do); mỗi dòng `IGNORE` có hạn xem lại, tối đa 6 tháng. Thêm, bỏ hay đổi mức một rule: pull request, người phụ trách bảo mật duyệt, người xin không tự duyệt. Không có `progress.json` ở repo này (đây là repo mới) |
+| Bằng chứng | Artifact `zap-report` (HTML, JSON, Markdown của cả hai lượt quét), giữ 30 ngày; log job. Artifact của repo public ai đăng nhập GitHub cũng tải được: báo cáo chứa URL và đoạn phản hồi, không được chứa dữ liệu thật |
+| Triage và thời hạn xử lý | `FAIL`: sửa trong chính pull request, vì gate chặn. `WARN`: xem lại trong tuần ở lần quét theo lịch; trong 14 ngày quyết định sửa, nâng lên `FAIL`, hay hạ xuống `IGNORE` kèm lý do và hạn. `.zap/openapi.yaml` phải cập nhật trong cùng pull request thêm hoặc đổi route |
+| Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PW.8.1 (quyết định cần kiểm thử mã đang chạy và loại kiểm thử nào; Example 1: trong môi trường sandbox), PW.8.2 (Example 2: tích hợp kiểm thử động vào bộ kiểm thử tự động; Example 3: thêm kiểm thử cho lỗ hổng đã báo để không tái diễn; Example 4: kể đến hạ tầng ở production), PO.4.1 và PO.4.2 (tiêu chí kiểm tra, tự động ra quyết định), PO.3.3 (công cụ sinh artifact bằng chứng). Bản đồ pipeline NCCoE: DAST System thuộc phase Test. Requirement: OWASP ASVS 5.0.0 mục 3.4 (`v5.0.0-3.4.3`, `3.4.4`, `3.4.5`, `3.4.6`) và `v5.0.0-16.5.1`, kiểm một phần bằng máy |
 
 ### Bảo vệ chính pipeline CI (module 09)
 
@@ -92,3 +100,4 @@ Chưa áp dụng.
 |---|---|---|
 | 2026-10-05 | Kỹ sư DevOps phụ trách bảo mật | Tạo file; thêm mục "Quét secret" (Lab 02) |
 | 2026-10-26 | Học viên (p1) | Điền mục "Container image và cấu hình" (Lab 06) |
+| 2026-10-26 | Học viên (p1) | Điền mục DAST (Lab 07) |
