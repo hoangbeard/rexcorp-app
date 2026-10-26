@@ -1,0 +1,4 @@
+# Cấu hình hadolint cho rexcorp-app (Lab 06). hadolint tự đọc file này ở thư mục làm việc.
+# Mặc định hadolint trả exit 1 với cả mức info. Gate của RexCorp chỉ chặn từ mức warning trở lên;
+# mức info và style vẫn hiện trong log để người review đọc.
+failure-threshold: warning

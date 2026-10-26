@@ -8,7 +8,9 @@ WORKDIR /app
 
 # Cài dependency theo đúng package-lock.json, bỏ devDependencies, rồi xóa cache của npm.
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && rm -rf /root/.npm
+RUN npm ci --omit=dev && rm -rf /root/.npm \
+ && rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+           /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-v1.22.22
 
 COPY src ./src
 
