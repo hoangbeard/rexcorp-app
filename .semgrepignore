@@ -1,0 +1,11 @@
+# File này THAY THẾ file .semgrepignore mặc định của Semgrep (không cộng dồn), nên các mục mặc định
+# cần giữ phải chép lại ở đây.
+.git
+node_modules/
+build/
+dist/
+vendor/
+test/
+
+# Rule SAST của repo và test của chúng: test cố ý chứa mẫu code lỗi để kiểm tra rule.
+.semgrep/

@@ -2,6 +2,7 @@ import express from 'express';
 import { securityHeaders } from './security-headers.js';
 import { createStore } from './store.js';
 import { registerSearchRoutes } from './search.js';
+import { summarizeByCategory } from './summary.js';
 
 const CATEGORIES = new Set(['hardware', 'service']);
 const AUTHOR_PATTERN = /^[a-z0-9._-]{1,40}$/;
@@ -42,6 +43,10 @@ export function createApp({ store = createStore() } = {}) {
       return res.status(400).json({ error: `category must be one of: ${[...CATEGORIES].join(', ')}` });
     }
     res.json({ items: store.listProducts({ category }) });
+  });
+
+  app.get('/api/summary', (req, res) => {
+    res.json(summarizeByCategory(store.listProducts()));
   });
 
   app.get('/api/products/:id', (req, res) => {
