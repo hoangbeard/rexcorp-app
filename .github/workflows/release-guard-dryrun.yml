@@ -1,0 +1,29 @@
+name: Release guard (dry-run, không build, không OIDC)
+on:
+  push:
+    branches: ['wCfix2/**']
+permissions: {}
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Chạy đúng phép kiểm của job verify-ref trên hai commit
+        run: |
+          check() {
+            if git merge-base --is-ancestor "$1" "origin/$DEFAULT_BRANCH"; then
+              echo "OK: $1 nằm trong origin/$DEFAULT_BRANCH"
+            else
+              echo "TỪ CHỐI: $1 không nằm trong origin/$DEFAULT_BRANCH, không phát hành."
+            fi
+          }
+          echo "--- commit cha (tương đương tag gắn vào commit đã review trên main)"; check "$GITHUB_SHA~1"
+          echo "--- commit của nhánh này (tương đương tag gắn vào commit chưa review)"; check "$GITHUB_SHA"
