@@ -7,3 +7,6 @@ npm-debug.log*
 /gitleaks.sarif
 # Báo cáo của ZAP khi chạy scripts/dast-scan.sh trên máy
 /zap-out/
+/scorecard.json
+/zizmor.sarif
+/scorecard.sarif
