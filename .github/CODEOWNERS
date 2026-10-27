@@ -1,23 +1,23 @@
-# Người duyệt policy, workflow và cấu hình gate. Thay @tai-khoan-cua-ban bằng tài khoản (hoặc @org/team) có quyền ghi vào repo.
+# Người duyệt policy, workflow và cấu hình gate. Thay @hoangbeard bằng tài khoản (hoặc @org/team) có quyền ghi vào repo.
 # Quy tắc: "last matching pattern takes the most precedence" (GitHub Docs, About code owners); mọi dòng dưới đây cùng một người.
 # Đây là file CODEOWNERS của Lab 08 cộng hai dòng đánh dấu (Lab 09): chép đè file của Lab 08 an toàn, không mất dòng nào.
 # CODEOWNERS chỉ có hiệu lực khi ruleset (hoặc branch protection) bật "Require review from Code Owners".
 
-/SECURITY-GATE.md            @tai-khoan-cua-ban
-/SECURITY-REQUIREMENTS.md    @tai-khoan-cua-ban
-/docs/security-exceptions.md @tai-khoan-cua-ban
-/docs/adr/                   @tai-khoan-cua-ban
-/docs/rulesets/              @tai-khoan-cua-ban
-/.github/CODEOWNERS          @tai-khoan-cua-ban
-/.github/workflows/          @tai-khoan-cua-ban
-/.github/dependabot.yml      @tai-khoan-cua-ban
-/.github/actionlint.yaml     @tai-khoan-cua-ban # (Lab 09)
-/.githooks/                  @tai-khoan-cua-ban # (Lab 09)
-/.gitleaksignore             @tai-khoan-cua-ban
-/.semgrep/                   @tai-khoan-cua-ban
-/.semgrepignore              @tai-khoan-cua-ban
-/.zap/                       @tai-khoan-cua-ban
-/.hadolint.yaml              @tai-khoan-cua-ban
-/.trivyignore.yaml           @tai-khoan-cua-ban
-/osv-scanner.toml            @tai-khoan-cua-ban
-/scripts/                    @tai-khoan-cua-ban
+/SECURITY-GATE.md            @hoangbeard
+/SECURITY-REQUIREMENTS.md    @hoangbeard
+/docs/security-exceptions.md @hoangbeard
+/docs/adr/                   @hoangbeard
+/docs/rulesets/              @hoangbeard
+/.github/CODEOWNERS          @hoangbeard
+/.github/workflows/          @hoangbeard
+/.github/dependabot.yml      @hoangbeard
+/.github/actionlint.yaml     @hoangbeard # (Lab 09)
+/.githooks/                  @hoangbeard # (Lab 09)
+/.gitleaksignore             @hoangbeard
+/.semgrep/                   @hoangbeard
+/.semgrepignore              @hoangbeard
+/.zap/                       @hoangbeard
+/.hadolint.yaml              @hoangbeard
+/.trivyignore.yaml           @hoangbeard
+/osv-scanner.toml            @hoangbeard
+/scripts/                    @hoangbeard
