@@ -1,16 +1,5 @@
 # SECURITY-GATE: `rexcorp-app`
 
-<!--
-Cách dùng mẫu:
-1. Chép file này vào GỐC repo, đặt tên SECURITY-GATE.md. Một repo một file.
-2. Mỗi module của khóa học điền MỘT mục control, đúng lúc bạn triển khai control đó.
-   Mục chưa áp dụng thì để nguyên dòng "Chưa áp dụng", đừng xóa: người đọc cần thấy cả những gì CHƯA có.
-3. Viết quy định đủ cụ thể để hai người đọc ra cùng một quyết định: chặn khi nào, ai duyệt ngoại lệ, hạn bao lâu.
-4. File này là policy: mọi thay đổi đi qua pull request và được người phụ trách bảo mật duyệt
-   (module 08 thêm CODEOWNERS cho file này).
-5. Xóa các comment hướng dẫn khi đã điền xong một mục.
--->
-
 ## Phạm vi và người chịu trách nhiệm
 
 | Mục | Giá trị |
@@ -22,10 +11,89 @@ Cách dùng mẫu:
 
 ## Quy tắc chung
 
-<!-- Điền đầy đủ ở module 08 (security gate, triage, ngoại lệ). -->
+### Gate là gì và chặn như thế nào
 
-- Gate là các job trong `.github/workflows/ci.yml`, chạy trên mọi `pull_request` và mỗi lần push lên `main`. Một job fail nghĩa là gate chặn: không merge pull request khi còn job đỏ.
-- Ngoại lệ ghi trong file của từng control (xem từng mục), luôn có lý do, người chịu trách nhiệm và ngày hết hạn, và được duyệt qua pull request.
+- **Gate** là một job CI có điều kiện chặn viết sẵn trong mục control bên dưới. Job fail (exit code khác 0) nghĩa là gate chặn. Tiêu chí chặn của từng control nằm ở hàng "Điều kiện chặn" của mục đó; file này là nơi duy nhất ghi chúng.
+- Job đỏ chỉ ngăn được merge khi nó là **required status check** của nhánh `main`. Ruleset `main: security gates` ([`docs/rulesets/main-protection.json`](docs/rulesets/main-protection.json)) đòi: pull request bắt buộc; 1 approval, gồm code owner; commit mới đẩy lên thì hủy approval cũ và người đẩy commit cuối không tự duyệt; thảo luận phải được giải quyết; 12 check bắt buộc ở bảng dưới; nhánh phải cập nhật với `main`; cấm force push và xóa nhánh. Người học làm một mình dùng bản `main-protection-solo.json` (không bắt buộc approval, vì tác giả pull request không tự duyệt được pull request của mình).
+- Check bắt buộc có trạng thái `success`, `skipped` hoặc `neutral` đều được tính là đạt. Workflow bị bỏ qua vì bộ lọc `paths` làm check kẹt ở "Pending" và chặn merge; một job bị bỏ qua bởi `if:` lại báo "Success" và im lặng cho qua. Vì vậy mọi workflow gate chạy trên **mọi** `pull_request` (không dùng bộ lọc `paths`), không có `if:` ở mức job làm bỏ qua job, và tên job là duy nhất trong cả repo (hai workflow cùng một tên job làm kết quả check mơ hồ). Job chỉ chạy theo lịch (triage) không đặt làm check bắt buộc.
+- **Chặn merge và chặn release là hai việc khác nhau.** Check **chặn merge** có hai loại. (a) *Tất định theo repo*: kết quả chỉ phụ thuộc commit, phiên bản công cụ đã ghim và file baseline/ngoại lệ trong repo (Gitleaks, Semgrep với rule của repo, test, build, hadolint, KICS, kiểm tra requirement, sổ ngoại lệ): chạy lại cùng commit cho cùng kết quả. (b) *Trôi theo dữ liệu bên ngoài* (SCA, quét image, quét lỗ hổng của SBOM, DAST): vẫn chặn merge, vì một CVE mới trong thứ sắp phát hành đúng là thứ cần chặn, nhưng có thể đỏ dù pull request không đổi dòng nào liên quan. Giảm tác hại: ghim phiên bản công cụ, `--ignore-unfixed` cho image, lần chạy theo lịch bắt phần trôi trước khi pull request gặp nó; khi vẫn đỏ vì dữ liệu mới thì xử lý theo hạng (sửa, hoặc ngoại lệ có người duyệt), không tắt gate. EPSS và KEV đổi hằng ngày và quyết định *bao lâu* phải sửa, không quyết định merge, nên **không** nằm trong điều kiện chặn merge (ADR-0008); người triage có thể **giữ release** khi còn finding P1 chưa xử lý.
+
+| Check bắt buộc (tên job) | Workflow | Module | Chặn khi |
+|---|---|---|---|
+| Secret scan (Gitleaks) | `ci.yml` | 02 | Có secret mới trong lịch sử (không nằm trong `.gitleaksignore`) |
+| Test (Node.js) | `ci.yml` | 01 | Test fail |
+| Build container image | `ci.yml` | 01 | Dựng image fail |
+| SAST (Semgrep CE) | `sast.yml` | 04 | Finding mức ERROR |
+| SCA (OSV-Scanner) | `dependency-scan.yml` | 05 | Lỗ hổng chưa nằm trong `osv-scanner.toml` |
+| Dependency review | `dependency-review.yml` | 05 | Thay đổi đưa vào lỗ hổng từ mức high hoặc giấy phép ngoài danh sách |
+| SBOM (Syft) | `sbom.yml` | 05 | SCVS L1 có FAIL, hoặc SBOM có lỗ hổng chưa nằm trong baseline |
+| Dockerfile and compose (hadolint, Trivy config, KICS) | `container.yml` | 06 | hadolint từ warning, Trivy config và KICS từ HIGH |
+| Image scan (Trivy) | `container.yml` | 06 | HIGH hoặc CRITICAL đã có bản vá, hoặc secret trong image |
+| DAST (ZAP baseline và API scan) | `dast.yml` | 07 | Rule `FAIL` trong `.zap/rules.tsv` |
+| Verify security requirements | `requirements-check.yml` | 03 | Requirement kiểm được hôm nay mà không đạt |
+| Exceptions register | `exceptions-check.yml` | 08 | Ngoại lệ thiếu trường, tự duyệt, quá hạn hoặc vượt trần thời hạn |
+
+### Chỉ chặn finding mới, và chuyển từ cảnh báo sang chặn
+
+- Repo mới (greenfield): mọi finding đều là finding mới, nên gate chặn ngay từ đầu.
+- Repo cũ (brownfield): finding đã có nằm trong baseline (nợ đã biết, có mục backlog và hạn), gate chỉ chặn finding **mới**. Baseline chỉ được tạo lại để **bớt** mục, qua pull request do người phụ trách bảo mật duyệt, không bao giờ để "cho qua" một finding mới.
+- Một gate mới đi qua ba giai đoạn: (1) **advisory**: chạy, lưu báo cáo, không chặn, đủ lâu để đo số finding và tỷ lệ báo nhầm; (2) **chặn finding mới**: fail với mọi finding ngoài baseline, chưa phải required check; (3) **required check**: ruleset đòi job xanh mới được merge. Sang giai đoạn sau khi giai đoạn trước chạy ổn trên ít nhất hai tuần pull request thật.
+
+### Ai làm gì
+
+- File policy (file này, `docs/security-exceptions.md`, `.gitleaksignore`, `osv-scanner.toml`, `.trivyignore.yaml`, `.zap/`, `.semgrep/`, workflow, ADR) do người phụ trách bảo mật duyệt qua `CODEOWNERS`. Người sửa file không tự duyệt thay đổi của mình.
+- Người triage xem kết quả `triage-enrichment.yml` mỗi ngày (job đỏ là tín hiệu KEV mới) và rà cả backlog mỗi thứ Hai; xếp hạng theo mục "Triage và ưu tiên", giao việc và ghi vào backlog.
+- Người chịu rủi ro kinh doanh (CTO) duyệt ngoại lệ P1 và P2.
+
+### Đo lường
+
+| Chỉ số | Cách lấy | Nhịp |
+|---|---|---|
+| Backlog theo bậc (P1 đến P4) và số mục quá hạn | Bảng triage, backlog | Hằng tuần |
+| Thời gian xử lý trung vị theo bậc | Ngày mở và ngày đóng mục backlog | Hằng tháng |
+| Tỷ lệ báo nhầm theo rule | Bảng triage của từng control (ví dụ `docs/sast-triage.md`) | Hằng tháng |
+| Số ngoại lệ đang hiệu lực và tuổi trung bình | `scripts/check-exceptions.sh` | Hằng tuần |
+| Tỷ lệ pull request có check bảo mật đỏ, và thời gian từ đỏ về xanh | `labs/scripts/lab-08-run-durations.sh` hoặc `gh run list` | Hằng tháng |
+| Năm metric DORA (lead time, tần suất deploy, thời gian khôi phục, tỷ lệ deploy lỗi, tỷ lệ deploy phải làm lại) trước và sau khi bật gate | Công cụ đo của đội hoặc DORA Quick Check | Hằng quý |
+
+Các chỉ số này để cải tiến quy trình, không phải mục tiêu để đạt: đặt chỉ số làm mục tiêu thì người ta sẽ làm đẹp chỉ số.
+
+## Triage và ưu tiên
+
+Mỗi finding còn mở được xếp vào một **bậc** để biết sửa lúc nào. Thang xếp bậc (ADR-0008):
+
+1. **Bối cảnh và hạng mặc định.** Hạng mặc định theo mức nghiêm trọng công cụ báo (Critical và High: P2; Medium: P3; Low: P4). Thành phần có mặt trong sản phẩm chạy thật không (presence)? Không có mặt (ví dụ chỉ trong `devDependencies`): P4, ghi bằng chứng. Có mặt nhưng chắc chắn không đến được (reachability) trong cách chạy hiện tại: hạ **một bậc**, ghi bằng chứng. Hậu quả nếu bị khai thác (consequence). Chưa rõ thì coi như đến được và ghi "chưa rõ".
+2. **CISA KEV.** Có trong KEV thì tra bảng bên dưới (bốn điểm: KEV, publicly exposed, automatable, technical impact). Kết quả "3 ngày" là P1; **KEV một mình không làm finding thành P1**, và KEV là sàn: không hạ dưới P2. Ô P3, P4 của bảng chỉ là gợi ý hạ, chỉ áp dụng khi bước 1 có bằng chứng. `Automatable` và `Technical Impact` lấy từ CISA Vulnrichment; `Publicly exposed` là tài sản của mình. Có bằng chứng viết ra và được người duyệt ký rằng đường khai thác không tồn tại ở cấu hình này: hạ một bậc (không hạ về P4), nếu vẫn chưa sửa kịp hạn của hạng mới thì ghi vào sổ ngoại lệ.
+3. **EPSS** (CVE không thuộc KEV) chỉ dùng để **nâng** hoặc xếp thứ tự, **không bao giờ để hạ** Critical hoặc High. EPSS ≥ 0.04, đến được (hoặc chưa rõ) và tài sản publicly exposed: nâng lên **P2**. EPSS từ 0.008 trở lên: xếp trước trong cùng hạng. Ngưỡng là kết quả của ADR-0008; xem lại mỗi quý.
+4. **CVSS.** Ghi kèm phiên bản và nhóm metric (ví dụ "CVSS v4.0 6.9, nhóm BT"; CVSS v3.1 thì ghi "Base"). Dùng để xếp thứ tự **trong cùng bậc** và khi không có EPSS. Không nhân CVSS với EPSS.
+5. **Finding không có CVE** (secret, SAST, DAST, cấu hình): secret thật là P1 (runbook `docs/runbooks/leaked-secret.md`); các finding khác dùng cùng bảng bên dưới với `KEV = không`, và `Automatable`, `Technical Impact` do người triage đánh giá, ghi lý do.
+
+Bảng bên dưới tóm tắt Table 1 của BOD 26-04 của CISA (cùng nội dung với cây quyết định "CISA BOD 26-04 Response Model" của CERT/CC SSVC). Hạng và hạn của repo này, theo mô hình hạn của khóa học (trang `docs/frameworks/remediation-sla.md` của repo khóa học; đổi con số thì đổi ở cả hai nơi): **P1** 3 ngày; **P2** 7 ngày nếu mức gốc là Critical, 14 ngày nếu High; **P3** 30 ngày; **P4** vào backlog, rà lại mỗi quý. "Forensic triage" nghĩa là ngoài việc xử lý còn phải kiểm tra tài sản có bị xâm phạm chưa.
+
+| KEV | Publicly exposed | Automatable | Technical impact: partial | Technical impact: total |
+|---|---|---|---|---|
+| Không | Không | Không | P4 | P4 |
+| Không | Không | Có | P3 | P3 |
+| Không | Có | Không | P3 | P2 |
+| Không | Có | Có | P2 | P1 |
+| Có | Không | Không | P2 | P2 |
+| Có | Không | Có | P2 | P1 và forensic triage |
+| Có | Có | Không | P2 | P1 và forensic triage |
+| Có | Có | Có | P1 | P1 và forensic triage |
+
+BOD 26-04 ràng buộc cơ quan liên bang Mỹ; RexCorp mượn bảng làm điểm xuất phát vì chính FIRST gọi nó là "a model for other organizations to use or adapt". Hạn xử lý này là quy định nội bộ của RexCorp, không phải nghĩa vụ pháp lý.
+
+Triage hằng ngày: khi `triage-enrichment.yml` đỏ, người triage đọc artifact `kev-epss`, xếp hạng CVE mới, cập nhật bảng triage (`docs/triage/`) và backlog, gom các finding cùng nguyên nhân gốc thành một việc. KEV hoặc EPSS vừa đổi hạng của một mục thì ghi ngày và lý do.
+
+## Ngoại lệ
+
+Quy định đầy đủ và các ngoại lệ đang hiệu lực nằm ở [`docs/security-exceptions.md`](docs/security-exceptions.md). Tóm tắt:
+
+- Ngoại lệ là quyết định chấp nhận rủi ro **có thời hạn, có người chịu trách nhiệm, có người duyệt khác người xin**. Mỗi ngoại lệ có mã `EXC-NNNN`, lý do, biện pháp tạm thời, ngày duyệt, ngày hết hạn và nơi cấu hình công cụ thực thi nó; mã `EXC-NNNN` phải xuất hiện trong chính file cấu hình đó.
+- Trần thời hạn từ ngày duyệt: P1 14 ngày, P2 30 ngày, P3 90 ngày, P4 và báo nhầm (FP) 6 tháng. Người duyệt: P1, P2 là CTO; P3 là trưởng nhóm phát triển; P4, FP là người phụ trách bảo mật (trưởng nhóm phát triển nếu chính người phụ trách bảo mật xin).
+- Trần này là thời gian tối đa được **chấp nhận rủi ro vượt hạn SLA** của bậc, tính từ ngày duyệt; nó không thay bảng SLA duy nhất (`docs/frameworks/remediation-sla.md` của repo khóa học). Baseline brownfield (ngoại lệ tập thể Critical 30, High 60, còn lại 90 ngày) là một ngoại lệ riêng có ADR và kế hoạch trả nợ, không tính vào trần này.
+- Gia hạn là một ngoại lệ mới, không sửa ngày của dòng cũ. Hết hạn mà chưa sửa thì job `Exceptions register` đỏ.
+- Cơ chế của từng công cụ (`.gitleaksignore`, `nosemgrep`, `osv-scanner.toml`, `.trivyignore.yaml`, `.zap/rules.tsv`) chỉ là nơi thực thi; thời hạn tối đa và người duyệt theo mục này, không theo mặc định của công cụ.
 
 ## Control
 
@@ -34,20 +102,12 @@ Cách dùng mẫu:
 | Hạng mục | Quy định |
 |---|---|
 | Công cụ và phiên bản | Gitleaks CLI v8.30.1, image `ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f`, cấu hình mặc định của Gitleaks (repo chưa có `.gitleaks.toml`). Không dùng `gitleaks-action` (xem ADR-0002). Bổ sung: secret scanning và push protection của GitHub (repo public) |
-| Chạy ở đâu | (1) Máy dev: pre-commit hook `.githooks/pre-commit`, quét phần đã stage. Mỗi người bật một lần bằng `git config core.hooksPath .githooks`. (2) Server: push protection của GitHub. (3) CI: job `secret-scan` quét **toàn bộ lịch sử mà `HEAD` mang theo** (`--log-opts="--full-history --diff-filter=tuxdb HEAD"`) trên mọi pull request và push lên `main`: lịch sử của `main` cộng các commit của pull request, không quét nhánh khác. (4) Liên tục: secret scanning của GitHub quét mọi nhánh. Quét mọi ref bằng Gitleaks (lệnh `gitleaks git` mặc định) chạy trên máy khi đánh giá định kỳ; chưa có job theo lịch |
+| Chạy ở đâu | (1) Máy dev: pre-commit hook `.githooks/pre-commit`, quét phần đã stage. Mỗi người bật một lần bằng `git config core.hooksPath .githooks`. (2) Server: push protection của GitHub. (3) CI: job `secret-scan` quét **toàn bộ lịch sử** trên mọi pull request và push lên `main`. (4) Liên tục: secret scanning của GitHub |
 | Điều kiện chặn | Mọi finding của Gitleaks không nằm trong `.gitleaksignore` làm job `secret-scan` fail (exit code 1). Không có ngưỡng mức độ: mọi secret đều chặn. Job `docker-build` chỉ chạy khi `secret-scan` xanh |
-| Baseline / ngoại lệ | File `.gitleaksignore` ở gốc repo, mỗi ngoại lệ là một Fingerprint của Gitleaks, ngay phía trên có comment ghi: ID (sự cố hoặc ticket), lý do, người chịu trách nhiệm, ngày hết hạn. Hạn tối đa 6 tháng. Người phụ trách bảo mật duyệt qua pull request; người xin ngoại lệ không tự duyệt. Không dùng comment `gitleaks:allow` trong code. Bypass push protection chỉ với lý do "It's used in tests" hoặc "It's a false positive"; lý do "I'll fix it later" được xử lý như một sự cố. Mỗi lần bypass ghi vào bảng "Nhật ký bypass push protection" ngay dưới bảng này |
+| Baseline / ngoại lệ | File `.gitleaksignore` ở gốc repo, mỗi ngoại lệ là một Fingerprint của Gitleaks, ngay phía trên có comment ghi: ID (sự cố hoặc ticket), lý do, người chịu trách nhiệm, ngày hết hạn. Hạn tối đa 6 tháng. Người phụ trách bảo mật duyệt qua pull request; người xin ngoại lệ không tự duyệt. Không dùng comment `gitleaks:allow` trong code. Bypass push protection chỉ với lý do "It's used in tests" hoặc "It's a false positive"; lý do "I'll fix it later" được xử lý như một sự cố |
 | Bằng chứng | Artifact `gitleaks-sarif` (SARIF 2.1.0, secret đã được `--redact`) của mỗi lần chạy, giữ 30 ngày; log job trên GitHub Actions. Artifact của repo public ai đăng nhập GitHub cũng tải được, nên báo cáo không bao giờ chứa giá trị secret |
 | Triage và thời hạn xử lý | Finding trên code đã push: coi là secret thật, xử lý theo `docs/runbooks/leaked-secret.md`, thu hồi trong ngày phát hiện. Finding nghi báo nhầm: triage trong 3 ngày làm việc. Ngoại lệ hết hạn: xem lại trong tuần hết hạn |
-| Giới hạn đã biết (chưa enforce) | (a) Job `secret-scan` **chưa** là required status check của `main`, nên job đỏ chưa tự chặn merge (SEC-002, module 08). (b) Gate đọc workflow, `.gitleaksignore` và hook **từ chính nhánh của pull request**, nên một pull request tự thêm fingerprint hoặc sửa workflow là gate xanh; cho tới khi có `CODEOWNERS` và required review (module 08), người review phải đọc mọi thay đổi ở các file này. (c) Ngày hết hạn trong `.gitleaksignore` chỉ là comment; Gitleaks không đọc nó. Module 08 thêm sổ ngoại lệ và script kiểm hạn |
-| Căn cứ trực tiếp | MITRE CWE-798 "Use of Hard-coded Credentials": secret viết cứng trong code là một loại điểm yếu đã được đặt tên. GitHub Docs: push protection chặn secret trước khi vào repo; với secret đã lộ, việc đầu tiên là thu hồi hoặc xoay vòng |
 | Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PS.1.1 (lưu mọi dạng code theo least privilege), PO.3.1 và PO.3.2 (đưa công cụ bảo mật vào toolchain, cấu hình dạng code), PO.3.3 (công cụ sinh artifact làm bằng chứng), PO.4.1 và PO.4.2 (tiêu chí kiểm tra và tự động ra quyết định). Bản đồ pipeline NCCoE: Secret Scanner là component của phase Develop |
-
-#### Nhật ký bypass push protection
-
-| Ngày | Repo | Secret (loại, vị trí, không ghi giá trị) | Lý do chọn | Người bypass | Bằng chứng |
-|---|---|---|---|---|---|
-| — | `rexcorp-app` | Chưa có lần bypass nào | — | — | — |
 
 ### Yêu cầu bảo mật và threat model (module 03)
 
@@ -108,10 +168,10 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 | Công cụ và phiên bản | Image: Trivy v0.76.1 (`ghcr.io/aquasecurity/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c`; release immutable, chữ ký cosign xác minh trước khi pin). Dockerfile: hadolint v2.15.1 (`hadolint/hadolint:v2.15.1@sha256:32dac941…`) và Trivy config. Docker Compose: KICS v2.1.20 (`checkmarx/kics:v2.1.20@sha256:3e5a268e…`; không dùng tag `latest`, không dùng `kics-github-action`). Grype v0.121.0 chỉ để đối chiếu trong báo cáo, không phải gate |
 | Chạy ở đâu | Workflow `.github/workflows/container.yml`: mọi `pull_request`, mọi push lên `main`, và lần chạy theo lịch thứ Hai hằng tuần 03:41 UTC (bắt CVE mới công bố sau khi build). Job `config-scan` (hadolint, Trivy config, KICS) và job `image-scan` (dựng image, `docker save`, Trivy quét từ file tar, không mount `docker.sock`) |
 | Điều kiện chặn | `image-scan`: mọi finding HIGH hoặc CRITICAL **đã có bản vá** (`--ignore-unfixed`) không nằm trong `.trivyignore.yaml`, hoặc secret trong image. `config-scan`: hadolint từ mức warning; Trivy config từ mức HIGH; KICS từ mức HIGH. Mọi gate fail độc lập, một lần chạy cho thấy hết. Finding chưa có bản vá không chặn nhưng nằm trong `trivy-image-all.json` và được xem trong buổi triage hằng tuần |
-| Baseline / ngoại lệ | `.trivyignore.yaml` ở gốc repo (đọc bằng `--ignorefile`). Mỗi mục bắt buộc có `id`, `statement` (lý do, người chịu trách nhiệm, điều kiện gỡ) và `expired_at`. `expired_at` chỉ là nơi Trivy thực thi một ngoại lệ đã duyệt: hạn không vượt trần của hạng (`docs/frameworks/remediation-sla.md`, mục 4) và người duyệt theo hạng (mục 5); người xin ngoại lệ không tự duyệt. Trivy **không** ép `expired_at`, nên người duyệt pull request kiểm tra từng mục. Hiện không có mục nào |
+| Baseline / ngoại lệ | `.trivyignore.yaml` ở gốc repo (đọc bằng `--ignorefile`). Mỗi mục bắt buộc có `id`, `statement` (lý do, người chịu trách nhiệm, điều kiện gỡ) và `expired_at` không vượt trần theo hạng ngoại lệ trong trang SLA của khóa học (P1 14, P2 30, P3 90, P4 và FP 183 ngày). Trivy **không** ép `expired_at`, nên người duyệt pull request kiểm tra từng mục. Người duyệt theo hạng ngoại lệ (P1 và P2: CTO; P3: trưởng nhóm; P4 và FP: người phụ trách bảo mật); người xin ngoại lệ không tự duyệt. Hiện không có mục nào |
 | Bằng chứng | Artifact `config-scan-reports` (SARIF của hadolint, Trivy config, KICS; JSON của KICS) và `image-scan-reports` (`trivy-image-all.json` đủ mọi mức, `trivy-image-gate.sarif`), giữ 30 ngày. Artifact của repo public ai đăng nhập GitHub cũng tải được: báo cáo không chứa secret (Trivy che giá trị) nhưng liệt kê gói và phiên bản |
 | Triage và thời hạn xử lý | Người triage: người phụ trách bảo mật, hằng tuần sau lần chạy theo lịch. Có bản vá và gate đỏ: dựng lại image với base mới theo bảng SLA duy nhất của khóa học (`docs/frameworks/remediation-sla.md`): Critical 7 ngày, High 14 ngày, Medium 30 ngày; hạng Khẩn 3 ngày khi triage thấy dấu hiệu khai thác thật. Nghi báo nhầm: triage trong 3 ngày làm việc, ghi lý do vào `statement` |
-| Quy tắc cấu hình | **Gate ép** (job `config-scan` đỏ): compose có `privileged`, mount `docker.sock` hoặc mount thư mục nhạy cảm của host (KICS, HIGH); `Dockerfile` kết thúc bằng `USER root` (Trivy config `DS-0002`, hadolint `DL3002`); `FROM` dùng tag `latest` (hadolint `DL3007`). **Luật review bằng mắt** (không công cụ nào ép ở ngưỡng hiện tại; người duyệt pull request phải kiểm): image chạy bằng user số (65532); không shell, không package manager; mọi `FROM` pin theo digest; không publish cổng ra mọi interface; có `cap_drop: [ALL]`, `read_only: true`, `no-new-privileges` (KICS chỉ báo MEDIUM cho ba cái đã đo, không chặn) |
+| Quy tắc cấu hình | Image chạy bằng user số (65532), không shell, không package manager; base image và mọi `FROM` pin theo digest; compose không `privileged`, không mount `docker.sock`, không publish cổng ra mọi interface, có `cap_drop: [ALL]`, `read_only: true`, `no-new-privileges` |
 | Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PW.4.1 và PW.4.4 (thành phần bên thứ ba, phát hiện lỗ hổng đã biết trong toolchain), PW.9.1 (secure baseline), RV.1.1 và RV.2.2 (quét lại liên tục; quyết định sửa hay xử lý cách khác), PO.3 và PO.4 (công cụ trong toolchain, tiêu chí kiểm tra). Bản đồ pipeline NCCoE: Container Image Scanner và IaC Scanner là component của phase Build. ADR-0006 |
 
 ### DAST: kiểm thử động (module 07)
@@ -121,10 +181,22 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 | Công cụ và phiên bản | ZAP 2.17.0 (Apache-2.0), image `ghcr.io/zaproxy/zaproxy:stable@sha256:5ccfff9a411743ab2615136a2edd7416bec9ce41572fa94e935df38c14adb2b6`, chạy bằng `scripts/dast-scan.sh` (hai lượt: `zap-baseline.py` và `zap-api-scan.py -S`). Không dùng `zaproxy/action-baseline` (xem ADR-0007). Tiêu chí gate: `.zap/rules.tsv`. Mô tả route cho API scan: `.zap/openapi.yaml` |
 | Chạy ở đâu | Job `zap` trong `.github/workflows/dast.yml`: mọi `pull_request`, push lên `main`, và theo lịch thứ Hai hằng tuần. Ứng dụng chạy ngay trong job, trong một mạng Docker `--internal`, không publish cổng. Chỉ quét ứng dụng này, không quét host nào khác. Quét chủ động (full scan, API scan không có `-S`): chỉ trên môi trường tạm hoặc staging do RexCorp sở hữu, sau khi báo bên vận hành; không nằm trong gate |
 | Điều kiện chặn | Rule đặt `FAIL` trong `.zap/rules.tsv` có ít nhất một alert trong lượt quét baseline hoặc API scan: ZAP exit 1, job fail. Rule `WARN` chỉ in ra, không chặn. Rule `IGNORE` không hiện |
-| Baseline / ngoại lệ | `.zap/rules.tsv`: mỗi dòng `FAIL` và `IGNORE` có cột ghi chú (căn cứ requirement hoặc lý do); mỗi dòng `IGNORE` có hạn xem lại. Dòng `IGNORE` chỉ là nơi ZAP thực thi một ngoại lệ đã duyệt: rule thông tin thuần hoặc báo nhầm thuộc nhóm FP, hạn không vượt trần ngoại lệ của nhóm đó và người duyệt theo bảng ở `docs/frameworks/remediation-sla.md` (mục 4 và 5). Thêm, bỏ hay đổi mức một rule: pull request; người xin không tự duyệt. Không có `progress.json` ở repo này (đây là repo mới) |
+| Baseline / ngoại lệ | `.zap/rules.tsv`: mỗi dòng `FAIL` và `IGNORE` có cột ghi chú (căn cứ requirement hoặc lý do); mỗi dòng `IGNORE` có hạn xem lại không vượt trần theo hạng ngoại lệ trong trang SLA của khóa học. Thêm, bỏ hay đổi mức một rule: pull request, duyệt theo hạng ngoại lệ, người xin không tự duyệt. Không có `progress.json` ở repo này (đây là repo mới) |
 | Bằng chứng | Artifact `zap-report` (HTML, JSON, Markdown của cả hai lượt quét), giữ 30 ngày; log job. Artifact của repo public ai đăng nhập GitHub cũng tải được: báo cáo chứa URL và đoạn phản hồi, không được chứa dữ liệu thật |
 | Triage và thời hạn xử lý | `FAIL`: sửa trong chính pull request, vì gate chặn. `WARN`: xem lại trong tuần ở lần quét theo lịch; trong 14 ngày quyết định sửa, nâng lên `FAIL`, hay hạ xuống `IGNORE` kèm lý do và hạn. `.zap/openapi.yaml` phải cập nhật trong cùng pull request thêm hoặc đổi route |
 | Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PW.8.1 (quyết định cần kiểm thử mã đang chạy và loại kiểm thử nào; Example 1: trong môi trường sandbox), PW.8.2 (Example 2: tích hợp kiểm thử động vào bộ kiểm thử tự động; Example 3: thêm kiểm thử cho lỗ hổng đã báo để không tái diễn; Example 4: kể đến hạ tầng ở production), PO.4.1 và PO.4.2 (tiêu chí kiểm tra, tự động ra quyết định), PO.3.3 (công cụ sinh artifact bằng chứng). Bản đồ pipeline NCCoE: DAST System thuộc phase Test. Requirement: OWASP ASVS 5.0.0 mục 3.4 (`v5.0.0-3.4.3`, `3.4.4`, `3.4.5`, `3.4.6`) và `v5.0.0-16.5.1`, kiểm một phần bằng máy |
+
+### Triage và ngoại lệ (module 08)
+
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | `scripts/kev-epss.sh` (bash, curl, jq; ghép CISA KEV và EPSS của FIRST) và `scripts/check-exceptions.sh` (bash, awk), workflow `triage-enrichment.yml` và `exceptions-check.yml`. KEV lấy từ `cisagov/kev-data` (bản sao chính thức của CISA, giấy phép CC0); EPSS lấy từ file CSV hằng ngày của FIRST (`epss_scores-current.csv.gz`). OSV-Scanner v2.6.0 pin digest như `dependency-scan.yml` (với `--config` rỗng để thấy cả lỗ hổng đã nằm trong baseline) |
+| Chạy ở đâu | `Exceptions register`: mọi pull request, push lên `main`, và thứ Hai hằng tuần. `triage-enrichment.yml`: chỉ theo lịch hằng ngày (04:41 UTC) và chạy tay; không chạy trên pull request. Triage KEV mới trong ngày, rà cả backlog mỗi thứ Hai |
+| Điều kiện chặn | `Exceptions register` fail khi có ngoại lệ đang hiệu lực mà thiếu trường, người xin cũng là người duyệt, quá hạn, vượt trần thời hạn của bậc, hoặc trỏ tới file không có thật. `triage-enrichment.yml` (không phải required check) fail khi có CVE trong KEV chưa nằm trong bản triage nào ở `docs/triage/`: tín hiệu để xếp hạng ngay |
+| Baseline / ngoại lệ | Sổ `docs/security-exceptions.md`; mỗi ngoại lệ có mã `EXC-NNNN`. Người phụ trách bảo mật duyệt qua `CODEOWNERS`; CTO duyệt P1 và P2. Hiện có 3 ngoại lệ (EXC-0001 đến EXC-0003) |
+| Bằng chứng | Artifact `kev-epss` (TSV kèm ngày chạy, phiên bản KEV và mô hình EPSS), giữ 30 ngày; bảng triage trong `docs/triage/`; log job `Exceptions register` |
+| Triage và thời hạn xử lý | Hạng và hạn như mục "Triage và ưu tiên" (P1 3 ngày; P2 7 ngày với Critical, 14 ngày với High; P3 30 ngày; P4 vào backlog), theo mô hình hạn của khóa học. Người triage xem tín hiệu KEV mỗi ngày và rà backlog mỗi thứ Hai; ngoại lệ còn dưới 14 ngày là WARN trong job, xử lý trong tuần |
+| Căn cứ framework | Ánh xạ của khóa học vào NIST SSDF 1.1: PO.4.1 và PO.4.2 (tiêu chí kiểm tra, tự động ra quyết định, xem lại định kỳ), RV.1.1 (theo dõi lỗ hổng mới), RV.2.1 và RV.2.2 (phân tích rủi ro từng lỗ hổng, quyết định sửa hay chấp nhận). FIRST CVSS v4.0, EPSS và CISA KEV (bảng BOD 26-04) cho thang xếp bậc. OWASP SAMM I-SB-3-A và I-DM-2-A; Microsoft SDL 1.3 và 1.4 (bug bar, ngoại lệ có thời hạn). Bản đồ pipeline NCCoE: control gate; metric đo ở dimension Continuous Improvements, Security, and Monitoring |
 
 ### Bảo vệ chính pipeline CI (module 09)
 
@@ -140,8 +212,8 @@ Chưa áp dụng.
 |---|---|---|
 | 2026-10-05 | Kỹ sư DevOps phụ trách bảo mật | Tạo file; thêm mục "Quét secret" (Lab 02) |
 | 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Yêu cầu bảo mật và threat model" (Lab 03) |
-| 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SAST" (Lab 04) |
-| 2026-10-08 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SCA" (Lab 05a) |
-| 2026-10-08 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SBOM" (Lab 05b) |
+| 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "SAST" (Lab 04) |
+| 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Dependency, SCA và SBOM" (Lab 05a, 05b) |
 | 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Container image và cấu hình" (Lab 06) |
 | 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "DAST" (Lab 07) |
+| 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Hoàn thiện "Quy tắc chung"; thêm mục "Triage và ưu tiên", "Ngoại lệ" và control "Triage và ngoại lệ"; đặt 12 check bắt buộc (Lab 08, ADR-0008) |
