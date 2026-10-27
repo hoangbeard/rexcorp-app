@@ -29,3 +29,5 @@ Chúng tôi sẽ pin mọi `uses:` theo SHA của commit kèm comment tag, và �
 ## Hậu quả
 
 Người phụ trách bảo mật review PR Dependabot mỗi thứ Hai. Rủi ro còn lại: SHA độc từ đầu, action lồng nhau chưa pin; không có review người thứ hai (làm một mình).
+
+Ghi chú: thay đổi nhỏ để thử gate xanh.
