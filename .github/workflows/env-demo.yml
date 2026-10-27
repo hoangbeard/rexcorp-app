@@ -1,0 +1,15 @@
+name: Env demo
+on:
+  push:
+    branches: ["wCfix1/env-test"]
+permissions:
+  contents: read
+jobs:
+  deploy-demo:
+    name: Deploy demo (production)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Chỉ chạy sau cổng duyệt
+        run: echo "đã qua cổng environment"
