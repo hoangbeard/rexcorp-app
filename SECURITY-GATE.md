@@ -32,6 +32,7 @@
 | DAST (ZAP baseline và API scan) | `dast.yml` | 07 | Rule `FAIL` trong `.zap/rules.tsv` |
 | Verify security requirements | `requirements-check.yml` | 03 | Requirement kiểm được hôm nay mà không đạt |
 | Exceptions register | `exceptions-check.yml` | 08 | Ngoại lệ thiếu trường, tự duyệt, quá hạn hoặc vượt trần thời hạn |
+| Workflow lint (actionlint, zizmor) | `workflow-lint.yml` | 09 | actionlint có lỗi, hoặc zizmor (pedantic, offline) có bất kỳ finding |
 
 ### Chỉ chặn finding mới, và chuyển từ cảnh báo sang chặn
 
@@ -200,7 +201,17 @@ Mục này không phải một gate tự động duy nhất: nó gồm gate tổ
 
 ### Bảo vệ chính pipeline CI (module 09)
 
-Chưa áp dụng. Đã có từ Lab 01: action pin theo SHA, `permissions: contents: read`, lint workflow bằng actionlint và zizmor trước khi push (ADR-0001).
+| Hạng mục | Quy định |
+|---|---|
+| Công cụ và phiên bản | actionlint 1.7.12 (`rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667`); zizmor 1.31.1 (`ghcr.io/zizmorcore/zizmor:1.31.1@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9`); OpenSSF Scorecard v5.6.0 qua `scorecard-action` v2.5.0 (pin SHA `fa7117db83c52d787ae5a89f350999701505d78e`). Bổ sung: Dependabot `github-actions` với `cooldown` 7 ngày |
+| Chạy ở đâu | Pull request và push lên `main`: job `Workflow lint (actionlint, zizmor)` (`workflow-lint.yml`). Theo lịch thứ Hai: zizmor có audit online và `scorecard.yml` (Scorecard, SARIF lên tab Security và lưu artifact). Dependabot hằng tuần |
+| Điều kiện chặn | Job `Workflow lint` fail khi: actionlint có lỗi; hoặc zizmor (`--offline --persona=pedantic`) có **bất kỳ** finding (exit code 11 đến 14). Quy tắc viết workflow: `permissions` khai báo ở mức workflow, mặc định `contents: read`, quyền ghi chỉ ở mức job kèm comment lý do; mọi `uses:` pin full commit SHA kèm comment tên tag; không dùng `pull_request_target` hay `workflow_run` khi chưa có ADR, và nếu có thì cấm checkout hay chạy code của PR; không đưa `github.event.*`, `github.actor`, `github.head_ref` vào `run:` (đi qua biến `env`); runner do GitHub cung cấp (self-hosted cần ADR) |
+| Baseline / ngoại lệ | `# zizmor: ignore[rule] lý do` đúng dòng, hoặc `zizmor.yml`; `.github/actionlint.yaml` cho actionlint. Mỗi ngoại lệ ghi: lý do, hạng, người chịu trách nhiệm, người duyệt và ngày hết hạn, và ghi vào `docs/security-exceptions.md` (sổ ngoại lệ của Lab 08). Trần thời hạn và người duyệt theo hạng: bảng SLA duy nhất của khóa học (`docs/frameworks/remediation-sla.md`), mục 4 và 5; cơ chế bỏ qua của công cụ chỉ là nơi thực thi. Duyệt qua CODEOWNERS; người xin không tự duyệt |
+| Bằng chứng | Artifact `zizmor-sarif` (workflow-lint) và `scorecard-sarif` (scorecard), giữ 30 ngày. Bảng điểm Scorecard trước và sau (Lab 09a, Bước 9). Repo public nên mọi người đăng nhập GitHub đều tải được artifact [^1] |
+| Ruleset và CODEOWNERS | Ruleset `main: security gates + workflow lint` (13 check: 12 của Lab 08 và `Workflow lint (actionlint, zizmor)`; [`docs/rulesets/main-protection.json`](docs/rulesets/main-protection.json); bản `-solo` cho người làm một mình): bắt buộc PR; check bắt buộc gồm `Workflow lint (actionlint, zizmor)`; cấm force push và xóa nhánh. `.github/CODEOWNERS` gán người phụ trách bảo mật cho `.github/workflows/`, `.github/CODEOWNERS`, `.github/dependabot.yml`, `docs/rulesets/`, file policy |
+| Environment | Job deploy dùng `environment: production` với Required reviewers (bật "Prevent self-review" khi có từ hai người) và chỉ nhánh `main`; secret deploy là environment secret. Gói Free chỉ có environment ở repo public |
+| Triage và thời hạn xử lý | Người phụ trách bảo mật xem PR đỏ và kết quả theo lịch mỗi thứ Hai. Hạng và hạn của một finding workflow theo bảng SLA duy nhất của khóa học (`docs/frameworks/remediation-sla.md`), mục 1 đến 3; không có bảng hạn riêng cho workflow. Không sửa kịp thì thành ngoại lệ (mục 4 và 5). PR cập nhật của Dependabot: xem trong tuần theo nhịp của người triage |
+| Căn cứ framework | NIST SSDF 1.1: PO.5.1 (tách và bảo vệ môi trường phát triển), PO.3.2 Example 7 (kiểm tra toàn vẹn công cụ), PS.1.1 (code owner review cho configuration-as-code), PO.4.1 và PO.4.2 (tiêu chí và tự động hóa) [^2]. OWASP Top 10 CI/CD: CICD-SEC-1, 4, 5, 6, 7, 8, 9. NIST SP 800-204D §4.1: mục tiêu 1 (bảo vệ pipeline) và mục tiêu 2 (toàn vẹn nguồn upstream) [^3]. Đây là ánh xạ của khóa học, không phải câu chữ của NIST |
 
 ### Toàn vẹn artifact: ký và provenance (module 10)
 
@@ -217,3 +228,4 @@ Chưa áp dụng.
 | 2026-10-06 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "Container image và cấu hình" (Lab 06) |
 | 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Thêm mục "DAST" (Lab 07) |
 | 2026-10-07 | Kỹ sư DevOps phụ trách bảo mật | Hoàn thiện "Quy tắc chung"; thêm mục "Triage và ưu tiên", "Ngoại lệ" và control "Triage và ngoại lệ"; đặt 12 check bắt buộc (Lab 08, ADR-0008) |
+| 2026-10-27 | p1 | Thêm mục Bảo vệ chính pipeline CI (Lab 09a, ADR-0009) |
