@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  merge_group: # cần khi bật merge queue: required check phải chạy cả trên nhánh tạm của hàng đợi
   schedule:
     - cron: "17 3 * * 1" # thứ Hai hằng tuần: chạy cả các audit online của zizmor
 
@@ -30,12 +31,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: actionlint (gate - lỗi cú pháp và biểu thức)
-        # Exit code 1 khi có lỗi -> job fail -> gate chặn.
-        run: docker run --rm -v "$GITHUB_WORKSPACE":/repo -w /repo "$ACTIONLINT_IMAGE"
-
       - name: zizmor, xuất SARIF làm bằng chứng
-        # Ở chế độ SARIF zizmor luôn thoát 0 (kết quả nằm trong file); bước gate nằm ở bước sau.
+        # THỨ TỰ: các bước tạo bằng chứng (SARIF, artifact) chạy TRƯỚC mọi bước gate. Ở chế độ SARIF zizmor luôn thoát 0
+        # (kết quả nằm trong file), nên bước này không làm job đỏ; bước gate nằm ở cuối.
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE":/repo "$ZIZMOR_IMAGE" \
             --offline --persona=pedantic --format=sarif /repo > zizmor.sarif
@@ -49,7 +47,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: actionlint (gate - lỗi cú pháp và biểu thức)
+        # Exit code 1 khi có lỗi -> job fail -> gate chặn. `!cancelled()`: vẫn chạy khi bước trước đã đỏ,
+        # để một lần chạy cho thấy MỌI lỗi (không phải sửa từng lỗi một).
+        if: ${{ !cancelled() }}
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/repo -w /repo "$ACTIONLINT_IMAGE"
+
       - name: zizmor (gate - mọi finding ở persona pedantic)
+        if: ${{ !cancelled() }}
         # --persona=pedantic: persona mặc định im lặng với `permissions: write-all` (Lab 09a, Bước 2).
         # --offline: kết quả chỉ phụ thuộc vào file trong repo, nên gate tất định.
         # Exit code 11 đến 14 theo mức cao nhất của finding (zizmor docs, mục Exit codes).
