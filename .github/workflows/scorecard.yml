@@ -2,7 +2,7 @@ name: Scorecard
 
 on:
   push:
-    branches: [main]
+    branches: ["wCfix1/scorecard"]
   schedule:
     - cron: "41 4 * * 1"
 
