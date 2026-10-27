@@ -1,0 +1,54 @@
+name: PR preview
+
+# Bản đã sửa của samples/lab-09/bad-workflow.yml.
+# pull_request (không phải pull_request_target): workflow lấy từ merge commit của PR,
+# token chỉ đọc và không có secret khi PR đến từ fork.
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: PR preview (test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code của PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Ghi chú tiêu đề PR
+        # Giá trị do người ngoài kiểm soát đi qua biến môi trường, không đi vào mã shell.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_ACTOR: ${{ github.actor }}
+        run: echo "Đang build preview cho PR '$PR_TITLE' của $PR_ACTOR"
+
+      - name: Cài dependency và chạy test
+        run: |
+          npm ci
+          npm test
+
+      - name: Báo kết quả vào trang tóm tắt của lần chạy
+        # Không cần quyền ghi PR: GITHUB_STEP_SUMMARY nằm trong chính lần chạy.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          {
+            echo "## PR preview"
+            echo
+            echo "Test xong cho PR: $PR_TITLE"
+          } >> "$GITHUB_STEP_SUMMARY"
