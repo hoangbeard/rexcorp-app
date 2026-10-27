@@ -1,0 +1,66 @@
+# Mở rộng tùy chọn của Lab 10 (CHƯA CHẠY THỬ trên GitHub): build image trên GitHub Actions,
+# đẩy lên ghcr.io và tạo build provenance bằng GitHub artifact attestations.
+# Chỉ dùng với repo PUBLIC: attestation của repo public được ghi vào transparency log công khai
+# và không xóa được. Xem Lab 10, mục "Mở rộng tùy chọn", và ADR-0010.
+name: Release (artifact attestation)
+
+on:
+  push:
+    tags: ['wC-*']
+
+# Mặc định không quyền gì; từng job tự xin đúng quyền cần.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-attest:
+    name: Build, push và attest image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read       # checkout
+      packages: write      # đẩy image lên ghcr.io
+      id-token: write      # xin OIDC token để ký (Sigstore)
+      attestations: write  # ghi attestation
+    env:
+      REGISTRY: ghcr.io
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Tên image (ghcr.io yêu cầu chữ thường)
+        id: image
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login ghcr.io
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build và push
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}
+          # Provenance do actions/attest tạo; tắt bản của BuildKit để image chỉ có một manifest.
+          provenance: false
+          sbom: false
+
+      - name: Tạo artifact attestation (build provenance)
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
