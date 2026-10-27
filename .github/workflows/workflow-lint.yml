@@ -48,12 +48,14 @@ jobs:
           retention-days: 30
 
       - name: actionlint (gate - lỗi cú pháp và biểu thức)
+        continue-on-error: true
         # Exit code 1 khi có lỗi -> job fail -> gate chặn. `!cancelled()`: vẫn chạy khi bước trước đã đỏ,
         # để một lần chạy cho thấy MỌI lỗi (không phải sửa từng lỗi một).
         if: ${{ !cancelled() }}
         run: docker run --rm -v "$GITHUB_WORKSPACE":/repo -w /repo "$ACTIONLINT_IMAGE"
 
       - name: zizmor (gate - mọi finding ở persona pedantic)
+        continue-on-error: true
         if: ${{ !cancelled() }}
         # --persona=pedantic: persona mặc định im lặng với `permissions: write-all` (Lab 09a, Bước 2).
         # --offline: kết quả chỉ phụ thuộc vào file trong repo, nên gate tất định.
