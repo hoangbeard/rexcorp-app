@@ -1,0 +1,25 @@
+name: Persist demo
+on:
+  push:
+    branches: ["wCfix1/persist"]
+permissions:
+  contents: read
+jobs:
+  persist:
+    name: Persist (mặc định)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        persist: [true, false]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: ${{ matrix.persist }}
+      - name: Token nằm ở đâu? (chỉ in tên khóa, ẩn giá trị)
+        run: |
+          echo "persist-credentials=${{ matrix.persist }}"
+          echo "--- git config --local (giá trị bị ẩn)"
+          git config --local --list | sed -E 's/=.*/=<ẩn>/' | grep -iE 'include|extraheader' || echo "(không có dòng nào về credential)"
+          echo "--- file credential dưới RUNNER_TEMP"
+          ls "$RUNNER_TEMP" | grep -i 'git-credentials' || echo "(không có file)"
